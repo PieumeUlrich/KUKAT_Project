@@ -8,15 +8,15 @@ export default function Dashboard() {
   const [lastTransactions, setLastTransactions] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:3001/api/dashboard")
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/dashboard`)
       .then((res) => res.json())
       .then((data) => setMetrics(data));
 
-    fetch("http://localhost:3001/api/dashboard/last-bookings")
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/dashboard/last-bookings`)
       .then((res) => res.json())
       .then((data) => setLastBookings(data.recordset || []));
 
-    fetch("http://localhost:3001/api/dashboard/last-transactions")
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/dashboard/last-transactions`)
       .then((res) => res.json())
       .then((data) => setLastTransactions(data.recordset || []));
   }, []);

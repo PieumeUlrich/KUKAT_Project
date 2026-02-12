@@ -7,7 +7,7 @@ export default function Bookings() {
   const [bookings, setBookings] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:3001/api/booking/destination")
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/booking/destination`)
       .then((res) => res.json())
       .then((data) => setDestinations(data || []));
   }, []);
@@ -15,7 +15,7 @@ export default function Bookings() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    fetch(`http://localhost:3001/api/booking?destinationId=${selectedDestination}`)
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/booking?destinationId=${selectedDestination}`)
       .then((res) => res.json())
       .then((data) => setBookings(data.recordset || []));
   };

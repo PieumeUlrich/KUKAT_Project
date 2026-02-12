@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import "./customer.css";
 import DataTable from "../components/DataTable";
 
-export default function Customers() {
+export const Customers = () => {
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -26,7 +26,7 @@ export default function Customers() {
 
   const getCustomers = () => {
     // Future: Fetch and display list of customers
-    fetch("http://localhost:3001/api/customer")
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/customer`)
       .then(async (res) => {
         const data = await res.json();
         setCustomers(data);
@@ -36,10 +36,46 @@ export default function Customers() {
       });
   };
 
+  const getCustmer = (id) => {
+    // Future: Fetch and display single customer details
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/customer/${id}`)
+      .then(async (res) => {
+        const data = await res.json();
+        setForm(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching customer:", error);
+      });
+  };
+
+  const updateCustomer = (id) => {
+    // Future: Update customer details
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/customer/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form)
+    })
+      .then((res) => res.json())
+      .then(() => setMessage("Customer updated successfully!"))
+      .catch(() => setMessage("Error updating customer"));
+  };
+
+  const deleteCustomer = (id) => {
+    // Future: Delete customer
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/customer/${id}`, {
+      method: "DELETE"
+    })
+      .then(() => {
+        setMessage("Customer deleted successfully!");
+        getCustomers();
+      })
+      .catch(() => setMessage("Error deleting customer"));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    fetch("http://localhost:3001/api/customer", {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/customer`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form)
@@ -86,3 +122,4 @@ export default function Customers() {
     </div>
   );
 }
+export default Customers;

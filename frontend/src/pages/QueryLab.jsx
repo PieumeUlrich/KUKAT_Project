@@ -10,7 +10,7 @@ export default function QueryLab() {
     e.preventDefault();
     setError("");
 
-    fetch("http://localhost:3001/api/query", {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/query`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query })
