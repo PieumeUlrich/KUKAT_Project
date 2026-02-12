@@ -1,5 +1,6 @@
 // db/config.js
 import dotenv from "dotenv";
+dotenv.config();
 
 
 const config = {
@@ -15,16 +16,3 @@ const config = {
 };
 
 export default config;
-// const config = {
-//   user: "ulrich",
-//   password: "root",
-//   server: "MSI",
-//   database: "TravelAgency",
-//   options: {
-//     encrypt: true,
-//     trustServerCertificate: true,
-//   },
-//   port: 1433,
-// };
-
-// export default config;
