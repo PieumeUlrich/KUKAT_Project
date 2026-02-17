@@ -37,6 +37,7 @@
   color: #374151;
   font-weight: 500;
   white-space: nowrap;
+  align-self: center;
   width: 45%;
 }
 
@@ -61,4 +62,29 @@
 
 .submit-btn:hover {
   background: #4338ca;
+}
+
+
+/*         DATA TABLE FUNCTION TABLE            */
+.action-cell {
+  display: flex;
+}
+
+.action-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.edit-btn {
+  color: #0570e2; /* blue */
+}
+
+.delete-btn {
+  color: #dc3545; /* red */
+}
+
+.action-btn:hover {
+  opacity: 0.7;
 }

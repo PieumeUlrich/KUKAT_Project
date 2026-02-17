@@ -2,43 +2,66 @@ import getConnection from "../db/connection.js";
 
 // CREATE CUSTOMER
 export const createCustomer = async (req, res) => {
+
+  const getExistingCustomerIds = async () => {
+      const pool = await getConnection();
+      const result = await pool.request()
+        .query(`
+        SELECT customerId FROM ulrich.Customer
+      `);
+      const ids = result.recordset.map(row => row.customerId);
+      return ids;
+  }
+
+  const getNextAvailableNumber = (existingNumbers, min = 1) => {
+    const used = new Set(existingNumbers);
+    let num = min;
+    while (used.has(num)) {
+      num++;
+    }
+    return num;
+  }
+
+  const id = getNextAvailableNumber(await getExistingCustomerIds());
+
   const {
-    firstName,
-    lastName,
-    email,
-    homePhone,
-    businessPhone,
-    birthDate,
-    address,
-    city,
-    postalCode,
-    province,
-    country
+    FIRSTNAME,
+    LASTNAME,
+    EMAIL,
+    HOMEPHONE,
+    BUSINESSPHONE,
+    BIRTHDATE,
+    ADDRESS,
+    CITY,
+    POSTALCODE,
+    PROVINCE,
+    COUNTRY
   } = req.body;
 
   try {
     const pool = await getConnection();
 
     await pool.request()
-      .input("firstName", firstName)
-      .input("lastName", lastName)
-      .input("email", email)
-      .input("homePhone", homePhone)
-      .input("businessPhone", businessPhone)
-      .input("birthDate", birthDate)
-      .input("address", address)
-      .input("city", city)
-      .input("postalCode", postalCode)
-      .input("province", province)
-      .input("country", country)
+      .input("customerId", id)
+      .input("firstName", FIRSTNAME)
+      .input("lastName", LASTNAME)
+      .input("email", EMAIL)
+      .input("homePhone", HOMEPHONE)
+      .input("businessPhone", BUSINESSPHONE)
+      .input("birthDate", BIRTHDATE)
+      .input("address", ADDRESS)
+      .input("city", CITY)
+      .input("postalCode", POSTALCODE)
+      .input("province", PROVINCE)
+      .input("country", COUNTRY)
       .query(`
         INSERT INTO ULRICH.CUSTOMER 
-        (FIRSTNAME, LASTNAME, EMAIL, HOMEPHONE, BUSINESSPHONE, BIRTHDATE, ADDRESS, CITY, POSTALCODE, PROVINCE, COUNTRY)
+        (CUSTOMERID, FIRSTNAME, LASTNAME, EMAIL, HOMEPHONE, BUSINESSPHONE, BIRTHDATE, ADDRESS, CITY, POSTALCODE, PROVINCE, COUNTRY)
         VALUES 
-        (@firstName, @lastName, @email, @homePhone, @businessPhone, @birthDate, @address, @city, @postalCode, @province, @country)
+        (@customerId, @firstName, @lastName, @email, @homePhone, @businessPhone, @birthDate, @address, @city, @postalCode, @province, @country)
       `);
 
-    res.json({ message: "Customer created successfully" });
+    res.json({ message: "Customer created successfully!" });
 
   } catch (err) {
     console.error(err);
@@ -55,7 +78,7 @@ export const getAllCustomers = async (req, res) => {
       SELECT CUSTOMERID, FIRSTNAME, LASTNAME, EMAIL, HOMEPHONE, BUSINESSPHONE,
              CONVERT(varchar(10), BIRTHDATE, 23) AS BIRTHDATE, ADDRESS, CITY, POSTALCODE, PROVINCE, COUNTRY
       FROM ULRICH.CUSTOMER
-      ORDER BY CUSTOMERID DESC
+      ORDER BY CUSTOMERID
     `);
 
     res.json(result.recordset);
@@ -76,7 +99,9 @@ export const getCustomerById = async (req, res) => {
     const result = await pool.request()
       .input("id", id)
       .query(`
-        SELECT * FROM ULRICH.CUSTOMER WHERE CUSTOMERID = @id
+          SELECT CUSTOMERID, FIRSTNAME, LASTNAME, EMAIL, HOMEPHONE, BUSINESSPHONE,
+            CONVERT(varchar(10), BIRTHDATE, 23) AS BIRTHDATE, ADDRESS, CITY, POSTALCODE, PROVINCE, COUNTRY
+          FROM ULRICH.CUSTOMER WHERE CUSTOMERID = @id
       `);
 
     if (result.recordset.length === 0) {
@@ -96,35 +121,36 @@ export const getCustomerById = async (req, res) => {
 export const updateCustomer = async (req, res) => {
   const { id } = req.params;
   const {
-    firstName,
-    lastName,
-    email,
-    homePhone,
-    businessPhone,
-    birthDate,
-    address,
-    city,
-    postalCode,
-    province,
-    country
+    CUSTOMERID,
+    FIRSTNAME,
+    LASTNAME,
+    EMAIL,
+    HOMEPHONE,
+    BUSINESSPHONE,
+    BIRTHDATE,
+    ADDRESS,
+    CITY,
+    POSTALCODE,
+    PROVINCE,
+    COUNTRY
   } = req.body;
 
   try {
     const pool = await getConnection();
 
     await pool.request()
-      .input("id", id)
-      .input("firstName", firstName)
-      .input("lastName", lastName)
-      .input("email", email)
-      .input("homePhone", homePhone)
-      .input("businessPhone", businessPhone)
-      .input("birthDate", birthDate)
-      .input("address", address)
-      .input("city", city)
-      .input("postalCode", postalCode)
-      .input("province", province)
-      .input("country", country)
+      .input("id", parseInt(id))
+      .input("firstName", FIRSTNAME)
+      .input("lastName", LASTNAME)
+      .input("email", EMAIL)
+      .input("homePhone", HOMEPHONE)
+      .input("businessPhone", BUSINESSPHONE)
+      .input("birthDate", BIRTHDATE)
+      .input("address", ADDRESS)
+      .input("city", CITY)
+      .input("postalCode", POSTALCODE)
+      .input("province", PROVINCE)
+      .input("country", COUNTRY)
       .query(`
         UPDATE ULRICH.CUSTOMER
         SET FIRSTNAME = @firstName,
@@ -141,7 +167,7 @@ export const updateCustomer = async (req, res) => {
         WHERE CUSTOMERID = @id
       `);
 
-    res.json({ message: "Customer updated successfully" });
+      res.json({ message: "Customer updated successfully" });
 
   } catch (err) {
     console.error(err);
@@ -162,7 +188,7 @@ export const deleteCustomer = async (req, res) => {
         DELETE FROM ULRICH.CUSTOMER WHERE CUSTOMERID = @id
       `);
 
-    res.json({ message: "Customer deleted successfully" });
+    res.json({ message: "Customer deleted successfully!" });
 
   } catch (err) {
     console.error(err);
