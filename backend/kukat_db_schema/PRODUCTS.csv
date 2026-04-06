@@ -1,0 +1,21 @@
+productID,supplierID,categoryID,productName,description,isActive
+1,1,2,Air Canada — Economy,Domestic and international economy fares,1
+2,1,1,Air Canada — Business,Business class domestic and transoceanic,1
+3,2,5,Royal Caribbean — Caribbean,7-night Caribbean cruise packages,1
+4,2,5,Royal Caribbean — Mediterranean,12-night Mediterranean cruise,1
+5,3,4,Hertz — Economy Car,"Economy car rental, unlimited km",1
+6,3,4,Hertz — SUV,Full-size SUV rental,1
+7,4,6,Fairmont — Standard Room,City hotel standard room,1
+8,4,6,Fairmont — Suite,Luxury suite with concierge,1
+9,5,9,Collette — European Highlights,14-day European highlights tour,1
+10,5,9,Collette — Alaska Explorer,8-day Alaska explorer tour,1
+11,6,6,Marriott — Standard Room,"Standard room, breakfast included",1
+12,7,9,Trafalgar — African Safari,10-day African safari experience,1
+13,8,9,Sunwing — Cuba All-Inclusive,7-night Cuba all-inclusive,1
+14,8,9,Sunwing — Dominican Republic,7-night Punta Cana all-inclusive,1
+15,9,2,TuiFly — Europe Charter,Charter flights Europe from Brussels,1
+16,10,5,Celebrity — Alaska Cruise,9-night Alaska Inside Passage cruise,1
+17,11,10,Global Travel Insurance — Basic,Basic travel insurance up to 21 days,1
+18,11,10,Global Travel Insurance — Premium,"Premium travel insurance, all-inclusive coverage",1
+19,12,9,Asia Pacific — Japan Discovery,15-day Japan discovery tour,1
+20,12,9,Asia Pacific — SE Asia Explorer,21-day Southeast Asia explorer,1

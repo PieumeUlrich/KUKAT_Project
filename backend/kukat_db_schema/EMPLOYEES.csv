@@ -1,0 +1,11 @@
+employeeID,roleID,agentCode,firstName,lastName,email,passwordHash,phoneNumber,address1,city,province,postalCode,country,isActive,hireDate,createdAt,updatedAt
+1,1,SA01,Marie,Fontaine,marie.fontaine@kukat.ca,$2b$12$KIXseedHashForDemoOnlyDoNotUseInProduction123456,4031112222,100 Main St,Calgary,AB,T2P 0A1,Canada,1,2019-03-01,2024-01-15 09:00:00,2024-01-15 09:00:00
+2,2,MG01,David,Osei,david.osei@kukat.ca,$2b$12$KIXseedHashForDemoOnlyDoNotUseInProduction123456,4032223333,204 Centre Ave,Calgary,AB,T2G 0C1,Canada,1,2020-06-15,2024-01-15 09:00:00,2024-01-15 09:00:00
+3,3,AG01,Sophie,Tremblay,sophie.tremblay@kukat.ca,$2b$12$KIXseedHashForDemoOnlyDoNotUseInProduction123456,4033334444,11 Park Dr,Calgary,AB,T2E 0E1,Canada,1,2021-01-10,2024-01-15 09:00:00,2024-01-15 09:00:00
+4,3,AG02,Marcus,Leung,marcus.leung@kukat.ca,$2b$12$KIXseedHashForDemoOnlyDoNotUseInProduction123456,4034445555,88 River Rd,Calgary,AB,T2N 0G1,Canada,1,2021-04-20,2024-01-15 09:00:00,2024-01-15 09:00:00
+5,3,AG03,Aisha,Patel,aisha.patel@kukat.ca,$2b$12$KIXseedHashForDemoOnlyDoNotUseInProduction123456,4035556666,55 Bow Valley,Calgary,AB,T2R 0H1,Canada,1,2022-02-01,2024-01-15 09:00:00,2024-01-15 09:00:00
+6,4,AC01,Jean,Moreau,jean.moreau@kukat.ca,$2b$12$KIXseedHashForDemoOnlyDoNotUseInProduction123456,4036667777,33 Finance Blvd,Calgary,AB,T2S 0J1,Canada,1,2020-09-01,2024-01-15 09:00:00,2024-01-15 09:00:00
+7,5,HR01,Linda,Kasongo,linda.kasongo@kukat.ca,$2b$12$KIXseedHashForDemoOnlyDoNotUseInProduction123456,4037778888,77 People St,Calgary,AB,T2T 0K1,Canada,1,2021-07-15,2024-01-15 09:00:00,2024-01-15 09:00:00
+8,3,AG04,Pierre,Dubois,pierre.dubois@kukat.ca,$2b$12$KIXseedHashForDemoOnlyDoNotUseInProduction123456,4038889999,22 Alpine Way,Calgary,AB,T2U 0L1,Canada,1,2022-11-01,2024-01-15 09:00:00,2024-01-15 09:00:00
+9,3,AG05,Nina,Okafor,nina.okafor@kukat.ca,$2b$12$KIXseedHashForDemoOnlyDoNotUseInProduction123456,4039990000,66 Stampede Rd,Calgary,AB,T2V 0M1,Canada,1,2023-01-15,2024-01-15 09:00:00,2024-01-15 09:00:00
+10,2,MG02,Carlos,Rivera,carlos.rivera@kukat.ca,$2b$12$KIXseedHashForDemoOnlyDoNotUseInProduction123456,4031230000,99 Summit Blvd,Calgary,AB,T2W 0N1,Canada,1,2022-05-01,2024-01-15 09:00:00,2024-01-15 09:00:00

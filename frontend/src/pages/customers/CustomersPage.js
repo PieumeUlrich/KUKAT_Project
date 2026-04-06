@@ -1,0 +1,135 @@
+import React, { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Box, Button, TextField, MenuItem, Grid, Card, CardContent,
+  Typography, Drawer, IconButton, InputAdornment, Alert, Avatar,
+} from '@mui/material';
+import { Add, Search, Refresh, Close, People, PersonAdd, SwapHoriz } from '@mui/icons-material';
+import AppLayout from '../../components/layout/AppLayout';
+import DataTable from '../../components/common/DataTable';
+import CustomerForm from './CustomerForm';
+import { useCustomers } from '../../hooks/useModules';
+import { customersApi } from '../../api/allModulesApi';
+import { useAuth, ROLES } from '../../store/AuthContext';
+import { KUKAT } from '../../styles/theme';
+
+function StatCard({ label, value, icon, color, loading }) {
+  return (
+    <Card><CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: '16px !important' }}>
+      <Box sx={{ width: 44, height: 44, borderRadius: '11px', background: `${color}18`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', color, flexShrink: 0 }}>
+        {icon}
+      </Box>
+      <Box>
+        <Typography sx={{ fontSize: '1.45rem', fontWeight: 700, color: KUKAT.navy, lineHeight: 1 }}>
+          {loading ? '…' : value}
+        </Typography>
+        <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>{label}</Typography>
+      </Box>
+    </CardContent></Card>
+  );
+}
+
+const COLUMNS = [
+  { id: 'customerID',   label: 'ID',       minWidth: 60 },
+  { id: 'name',         label: 'Name',     minWidth: 160,
+    render: (_, r) => (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+        <Avatar sx={{ width: 28, height: 28, fontSize: '0.75rem', fontWeight: 700,
+          background: KUKAT.navy, color: '#fff' }}>
+          {r.firstName?.[0]}{r.lastName?.[0]}
+        </Avatar>
+        <Box>
+          <Typography variant="body2" fontWeight={600}>{r.firstName} {r.lastName}</Typography>
+          <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>{r.email}</Typography>
+        </Box>
+      </Box>
+    )},
+  { id: 'city',         label: 'City',     minWidth: 110 },
+  { id: 'province',     label: 'Province', minWidth: 90 },
+  { id: 'homePhone',    label: 'Phone',    minWidth: 130 },
+  { id: 'agentName',    label: 'Agent',    minWidth: 150 },
+  { id: 'bookingCount', label: 'Bookings', minWidth: 90, align: 'center' },
+];
+
+export default function CustomersPage() {
+  const navigate = useNavigate();
+  const { isHR, isAdmin, isManager } = useAuth();
+  const [search,     setSearch]     = useState('');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [saving,     setSaving]     = useState(false);
+  const [saveError,  setSaveError]  = useState('');
+
+  const { customers: rawCustomers, loading, error, total, refetch } = useCustomers({ search });
+  const customers = rawCustomers ?? [];
+
+  const handleCreate = useCallback(async (data) => {
+    setSaving(true); setSaveError('');
+    try {
+      await customersApi.create(data);
+      setDrawerOpen(false);
+      refetch();
+    } catch (err) {
+      setSaveError(err.response?.data?.message || 'Failed to create customer.');
+    } finally { setSaving(false); }
+  }, [refetch]);
+
+  return (
+    <AppLayout title="Customers" subtitle={`${total} total customer${total !== 1 ? 's' : ''}`}>
+
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid item xs={12} sm={4}>
+          <StatCard label="Total customers" value={total} icon={<People />}
+            color={KUKAT.teal} loading={loading} />
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <StatCard label="New this month"
+            value={customers.filter(c => {
+              const d = new Date(c.createdAt);
+              const now = new Date();
+              return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+            }).length}
+            icon={<PersonAdd />} color={KUKAT.amber} loading={loading} />
+        </Grid>
+        <Grid item xs={12} sm={4}>
+          <StatCard label="With active bookings"
+            value={customers.filter(c => c.bookingCount > 0).length}
+            icon={<SwapHoriz />} color={KUKAT.navy} loading={loading} />
+        </Grid>
+      </Grid>
+
+      <Box sx={{ display: 'flex', gap: 2, mb: 2.5, flexWrap: 'wrap', alignItems: 'center' }}>
+        <TextField placeholder="Search name, email, city…" size="small" value={search}
+          onChange={(e) => setSearch(e.target.value)} sx={{ flex: 1, minWidth: 220 }}
+          InputProps={{ startAdornment: <InputAdornment position="start">
+            <Search sx={{ fontSize: 18, color: KUKAT.textMuted }} /></InputAdornment> }}
+        />
+        <IconButton onClick={refetch} size="small" sx={{ color: KUKAT.textMuted }}><Refresh /></IconButton>
+        <Button variant="contained" startIcon={<Add />}
+          onClick={() => { setSaveError(''); setDrawerOpen(true); }}>
+          New customer
+        </Button>
+      </Box>
+
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+      <DataTable columns={COLUMNS} rows={customers} loading={loading} keyField="customerID"
+        onRowClick={(row) => navigate(`/customers/${row.customerID}`)}
+        emptyMessage="No customers found." />
+
+      <Drawer anchor="right" open={drawerOpen}
+        onClose={() => !saving && setDrawerOpen(false)}
+        PaperProps={{ sx: { width: { xs: '100%', sm: 560 }, p: 3, overflow: 'auto' } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+          <Box>
+            <Typography variant="h5" sx={{ color: KUKAT.navy }}>New customer</Typography>
+            <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>Add a new customer profile</Typography>
+          </Box>
+          <IconButton onClick={() => setDrawerOpen(false)} disabled={saving}><Close /></IconButton>
+        </Box>
+        {saveError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSaveError('')}>{saveError}</Alert>}
+        <CustomerForm onSave={handleCreate} onCancel={() => setDrawerOpen(false)} saving={saving} />
+      </Drawer>
+    </AppLayout>
+  );
+}

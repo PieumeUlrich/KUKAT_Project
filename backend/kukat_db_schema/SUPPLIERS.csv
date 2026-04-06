@@ -1,0 +1,13 @@
+supplierID,affiliationID,categoryID,supplierName,contactName,address1,address2,city,province,postalCode,country,phoneNumber,fax,email,website,representative,commissionRate,isActive
+1,1,1,Air Canada Vacations,Luc Martin,123 Airport Rd,,Montreal,QC,H4Z 1H7,Canada,5141234567,,vacations@aircanada.com,aircanada.com,,10.0,1
+2,2,2,Royal Caribbean Cruises,Anna Bloom,1050 Royal Caribbean Way,,Miami,FL,33132,USA,3059820026,,anna.bloom@rccl.com,royalcaribbean.com,,12.0,1
+3,3,1,Hertz Car Rental,Tom Kwok,8501 Williams Rd,,Richmond,BC,V7A 1G7,Canada,6042781234,,tkwok@hertz.com,hertz.com,,8.0,1
+4,3,2,Fairmont Hotels,Claire Dupont,100 Wellington St,,Toronto,ON,M5J 2R5,Canada,4163191600,,cdupont@fairmont.com,fairmont.com,,15.0,1
+5,1,3,Collette Tours,Ben Ramos,162 Middle St,,Pawtucket,RI,02860,USA,8004522652,,bramos@collette.com,collette.com,,11.0,1
+6,3,2,Marriott International,Sara Kim,10400 Fernwood Rd,,Bethesda,MD,20817,USA,3013801000,,skim@marriott.com,marriott.com,,13.0,1
+7,4,3,Trafalgar Tours,Mei Zhao,801 E Katella Ave,,Anaheim,CA,92805,USA,7145203800,,mzhao@trafalgar.com,trafalgar.com,,10.5,1
+8,5,1,Sunwing Vacations,Rick Lowe,27 Fasken Dr,,Toronto,ON,M9W 1K6,Canada,4167986000,,rlowe@sunwing.ca,sunwing.ca,,9.0,1
+9,1,2,Tuifly Belgium,Nora Vandenberghe,Brussels Airport,,Zaventem,,1930,Belgium,+3227225252,,nvanden@tui.be,tui.be,,11.0,1
+10,2,1,Celebrity Cruises,James Obi,1050 Caribbean Way,,Miami,FL,33132,USA,3059821020,,jobi@celebrity.com,celebrity.com,,12.5,1
+11,5,1,Global Travel Insurance,Sean Russell,220 Duncan Mill Rd,Suite 620,Toronto,ON,M3B 3J5,Canada,4164410166,,info@globaltravel.ca,globaltravel.ca,,5.0,1
+12,6,3,Asia Pacific Tours,Yuki Tanaka,1-2-3 Shinjuku,,Tokyo,,160-0022,Japan,+81312345678,,ytanaka@aptours.jp,aptours.jp,,10.0,1

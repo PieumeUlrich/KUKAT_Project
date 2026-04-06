@@ -1,0 +1,6 @@
+roleID,roleName,description,createdAt,updatedAt
+1,superadmin,Full system access — all modules,2024-01-15 09:00:00,2024-01-15 09:00:00
+2,manager,"Oversight, approvals, reports",2024-01-15 09:00:00,2024-01-15 09:00:00
+3,agent,Own bookings and customers only,2024-01-15 09:00:00,2024-01-15 09:00:00
+4,accountant,"Invoices, payments, commissions",2024-01-15 09:00:00,2024-01-15 09:00:00
+5,hr,"Staff management, client reassignment",2024-01-15 09:00:00,2024-01-15 09:00:00

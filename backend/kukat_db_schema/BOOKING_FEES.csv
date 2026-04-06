@@ -1,0 +1,7 @@
+feeID,feeCode,description,feeAmount,createdAt,updatedAt
+1,BK,Booking charge,25.0,2024-01-15 09:00:00,2024-01-15 09:00:00
+2,CH,Change fee,15.0,2024-01-15 09:00:00,2024-01-15 09:00:00
+3,RF,Refund processing,25.0,2024-01-15 09:00:00,2024-01-15 09:00:00
+4,RS,Research fee,50.0,2024-01-15 09:00:00,2024-01-15 09:00:00
+5,EX,Expedite fee,35.0,2024-01-15 09:00:00,2024-01-15 09:00:00
+6,GRP,Group booking fee,75.0,2024-01-15 09:00:00,2024-01-15 09:00:00
