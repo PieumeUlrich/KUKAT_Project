@@ -5,11 +5,11 @@ import {
   Typography, Drawer, IconButton, InputAdornment, Alert,
   Divider, CircularProgress,
 } from '@mui/material';
-import { Add, Search, Close, Receipt, AttachMoney, HourglassEmpty, CheckCircle } from '@mui/icons-material';
+import { Add, Search, Close, Receipt, AttachMoney, HourglassEmpty, CheckCircle, Cancel } from '@mui/icons-material';
 import AppLayout from '../../components/layout/AppLayout';
 import DataTable from '../../components/common/DataTable';
 import StatusChip from '../../components/common/StatusChip';
-import { useInvoices } from '../../hooks/useModules';
+import { useInvoices, useInvoiceStats } from '../../hooks/useModules';
 import { invoicesApi } from '../../api/index';
 import { KUKAT } from '../../styles/theme';
 
@@ -108,11 +108,13 @@ export default function InvoicesPage() {
   const [saveError,  setSaveError]  = useState('');
 
   const { invoices: rawInvoices, loading, error, total, refetch } = useInvoices({ search, status });
+  const { stats: globalStats } = useInvoiceStats();
   const invoices = rawInvoices ?? [];
 
-  const totalRevenue  = invoices.reduce((s, i) => s + (i.status === 'paid' ? parseFloat(i.totalAmount || 0) : 0), 0);
-  const totalUnpaid   = invoices.filter(i => i.status === 'unpaid').length;
-  const totalPaid     = invoices.filter(i => i.status === 'paid').length;
+  const totalRevenue  = globalStats?.totalCollected ?? 0;
+  const totalUnpaid   = globalStats?.unpaid         ?? 0;
+  const totalPaid     = globalStats?.paid           ?? 0;
+  const totalRefunded = globalStats?.refunded       ?? 0;
 
   const handlePayment = useCallback(async (data) => {
     setSaving(true); setSaveError('');
@@ -137,6 +139,9 @@ export default function InvoicesPage() {
           icon={<HourglassEmpty />} color={KUKAT.amber} loading={loading} /></Grid>
         <Grid item xs={6} sm={3}><StatCard label="Paid" value={totalPaid}
           icon={<CheckCircle />} color={KUKAT.teal} loading={loading} /></Grid>
+        <Grid item xs={6} sm={3}><StatCard label="Refunded" value={totalRefunded}
+          icon={<Cancel />} color="#5f44ef" loading={loading} /></Grid>
+
       </Grid>
 
       <Box sx={{ display: 'flex', gap: 2, mb: 2.5, flexWrap: 'wrap', alignItems: 'center' }}>

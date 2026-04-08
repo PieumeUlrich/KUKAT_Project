@@ -4,23 +4,27 @@ import {
   TableRow, TablePagination, TableSortLabel, Paper,
   Box, Skeleton, Typography,
 } from '@mui/material';
-import { InboxOutlined } from '@mui/icons-material';
+import { InboxOutlined, CheckCircle } from '@mui/icons-material';
 import { KUKAT } from '../../styles/theme';
 
 export default function DataTable({
-  columns,        // [{ id, label, minWidth, align, render }]
-  rows,           // array of data objects
+  columns,
+  rows,
   loading = false,
-  rowsPerPageOptions = [10, 25, 50],
+  rowsPerPageOptions = [10, 25, 50, 100],
   defaultRowsPerPage = 10,
-  onRowClick,     // optional — (row) => void
+  onRowClick,
   keyField = 'id',
   emptyMessage = 'No records found.',
+  // Server-side pagination props
 }) {
-  const [page, setPage]           = useState(0);
-  const [rowsPerPage, setRPP]     = useState(defaultRowsPerPage);
-  const [orderBy, setOrderBy]     = useState('');
-  const [order, setOrder]         = useState('asc');
+  const [page, setPage]     = useState(0);
+  const [rowsPerPage, setRPP]         = useState(defaultRowsPerPage);
+  const [orderBy, setOrderBy]         = useState('');
+  const [order, setOrder]             = useState('asc');
+
+  // Use external page (server-side) or local page (client-side)
+  React.useEffect(() => { setPage(0); }, [rows.length]);
 
   const handleSort = (colId) => {
     const isAsc = orderBy === colId && order === 'asc';
@@ -29,6 +33,7 @@ export default function DataTable({
     setPage(0);
   };
 
+  // Only sort/slice locally if not server-side
   const sorted = [...rows].sort((a, b) => {
     if (!orderBy) return 0;
     const va = a[orderBy] ?? '';
@@ -51,7 +56,6 @@ export default function DataTable({
                   key={col.id}
                   align={col.align || 'left'}
                   style={{ minWidth: col.minWidth }}
-                  sortDirection={orderBy === col.id ? order : false}
                 >
                   {col.sortable !== false ? (
                     <TableSortLabel
@@ -94,7 +98,7 @@ export default function DataTable({
                   onClick={() => onRowClick?.(row)}
                   sx={{
                     cursor: onRowClick ? 'pointer' : 'default',
-                    '&:hover': { backgroundColor: onRowClick ? `${KUKAT.surfaceAlt}` : undefined },
+                    '&:hover': { backgroundColor: onRowClick ? KUKAT.surfaceAlt : undefined },
                   }}
                 >
                   {columns.map((col) => (
@@ -115,8 +119,11 @@ export default function DataTable({
         count={rows.length}
         rowsPerPage={rowsPerPage}
         page={page}
-        onPageChange={(_, p) => setPage(p)}
-        onRowsPerPageChange={(e) => { setRPP(+e.target.value); setPage(0); }}
+        onPageChange={(_, newPage) => setPage(newPage)}
+        onRowsPerPageChange={(e) => {
+          setRPP(parseInt(e.target.value, 10));
+          setPage(0);
+        }}
         sx={{ borderTop: `1px solid ${KUKAT.border}` }}
       />
     </Paper>

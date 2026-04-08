@@ -8,7 +8,7 @@ import { SwapHoriz, People, TrendingUp } from '@mui/icons-material';
 import AppLayout from '../../components/layout/AppLayout';
 import DataTable from '../../components/common/DataTable';
 import { useCustomers } from '../../hooks/useModules';
-import { customersApi, staffApi } from '../../api/allModulesApi';
+import { customersApi, staffApi } from '../../api/index';
 import { KUKAT } from '../../styles/theme';
 
 const COLUMNS = [
@@ -44,7 +44,7 @@ export default function HRPage() {
 
   useEffect(() => {
     staffApi.getAll({ role: 'agent' })
-      .then(({ data }) => setAgents(data.employees ?? data))
+      .then(({ data }) => setAgents(data.employees ?? data.data ?? data))
       .catch(() => {});
   }, []);
 

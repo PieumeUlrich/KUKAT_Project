@@ -8,7 +8,7 @@ import { Search, CheckCircle, AccountBalance, HourglassEmpty, Star } from '@mui/
 import AppLayout from '../../components/layout/AppLayout';
 import DataTable from '../../components/common/DataTable';
 import StatusChip from '../../components/common/StatusChip';
-import { useCommissions } from '../../hooks/useModules';
+import { useCommissions, useCommissionStats } from '../../hooks/useModules';
 import { commissionsApi } from '../../api/index';
 import { useAuth } from '../../store/AuthContext';
 import { KUKAT } from '../../styles/theme';
@@ -41,11 +41,12 @@ export default function CommissionsPage() {
 
   const filters = isAgent() ? { search, status, employeeID: user?.employeeID } : { search, status };
   const { commissions: rawCommissions, loading, error, total, refetch } = useCommissions(filters);
+  const { stats: globalStats } = useCommissionStats();
   const commissions = rawCommissions ?? [];
 
-  const totalEarned  = commissions.reduce((s, c) => s + (c.status === 'paid' ? parseFloat(c.commissionAmount || 0) : 0), 0);
-  const totalPending = commissions.filter(c => c.status === 'pending').length;
-  const bonusCount   = commissions.filter(c => c.isBonus).length;
+  const totalEarned  = globalStats?.totalPaid    ?? 0;
+  const totalPending = globalStats?.pending       ?? 0;
+  const bonusCount   = globalStats?.bonusCount    ?? 0;
 
   const handleApprove = useCallback(async (id) => {
     setApproving(id);

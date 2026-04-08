@@ -11,12 +11,12 @@ import AppLayout from '../../components/layout/AppLayout';
 import StatusChip from '../../components/common/StatusChip';
 import CustomerForm from './CustomerForm';
 import { useCustomer } from '../../hooks/useModules';
-import { customersApi, staffApi } from '../../api/allModulesApi';
+import { customersApi, staffApi } from '../../api/index';
 import { useAuth } from '../../store/AuthContext';
 
 import { KUKAT } from '../../styles/theme';
 
-function InfoRow({ label, value }) {
+const InfoRow = ({ label, value }) => {
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1,
       borderBottom: `1px solid ${KUKAT.border}`, '&:last-child': { borderBottom: 'none' } }}>

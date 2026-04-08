@@ -14,12 +14,12 @@ import AppLayout from '../../components/layout/AppLayout';
 import StatusChip from '../../components/common/StatusChip';
 import BookingForm from './BookingForm';
 import { useBooking } from '../../hooks/useBookings';
-import bookingsApi from '../../api/bookingsApi';
+import { bookingsApi } from '../../api/index';
 import { useAuth } from '../../store/AuthContext';
 import { KUKAT } from '../../styles/theme';
 
 // ── Info row inside a detail card ─────────────────────────────
-function InfoRow({ label, value, mono }) {
+const InfoRow = ({ label, value, mono }) => {
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.2,
       borderBottom: `1px solid ${KUKAT.border}`, '&:last-child': { borderBottom: 'none' } }}>

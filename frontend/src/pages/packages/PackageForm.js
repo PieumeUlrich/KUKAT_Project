@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────
 import React, { useState, useEffect } from 'react';
 import { Box, Grid, TextField, MenuItem, Button, CircularProgress, Switch, FormControlLabel } from '@mui/material';
-import { packagesApi } from '../../api/allModulesApi';
+import { packagesApi } from '../../api/index';
 import { KUKAT } from '../../styles/theme';
 
 const EMPTY = { supplierID: '', categoryID: '', productName: '', description: '', isActive: true };

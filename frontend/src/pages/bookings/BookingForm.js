@@ -7,7 +7,7 @@ import {
 } from '@mui/material';
 import { Add, Delete, Group } from '@mui/icons-material';
 import { useBookingFormData } from '../../hooks/useBookings';
-import bookingsApi from '../../api/bookingsApi';
+import { bookingsApi } from '../../api/index';
 import { KUKAT } from '../../styles/theme';
 
 const STATUSES = ['pending', 'confirmed', 'completed', 'cancelled'];
@@ -20,7 +20,7 @@ const EMPTY = {
   isGroupBooking: false, groupName: '',
 };
 
-export default function BookingForm({ initial = {}, onSave, onCancel, saving }) {
+const BookingForm = ({ initial = {}, onSave, onCancel, saving }) => {
   const { destinations, classTypes, fees, products, loading: refLoading } = useBookingFormData();
 
   const [form,          setForm]          = useState({ ...EMPTY, ...initial });
@@ -36,8 +36,8 @@ export default function BookingForm({ initial = {}, onSave, onCancel, saving }) 
   useEffect(() => {
     if (!customerQuery || customerQuery.length < 2) { setCustomers([]); return; }
     setCustLoading(true);
-    bookingsApi.getCustomers({ search: customerQuery, limit: 10 })
-      .then(({ data }) => setCustomers(data.customers ?? data))
+    bookingsApi.getCustomers({ search: customerQuery, limit: 'all' })
+      .then(({ data }) => setCustomers(data.customers ?? data.data ?? data))
       .catch(() => {})
       .finally(() => setCustLoading(false));
   }, [customerQuery]);
@@ -45,8 +45,8 @@ export default function BookingForm({ initial = {}, onSave, onCancel, saving }) 
   // Group member search
   useEffect(() => {
     if (!memberQuery || memberQuery.length < 2) { setMemberOptions([]); return; }
-    bookingsApi.getCustomers({ search: memberQuery, limit: 10 })
-      .then(({ data }) => setMemberOptions(data.customers ?? data))
+    bookingsApi.getCustomers({ search: memberQuery, limit: 'all' })
+      .then(({ data }) => setMemberOptions(data.customers ?? data.data ?? data))
       .catch(() => {});
   }, [memberQuery]);
 
@@ -54,6 +54,9 @@ export default function BookingForm({ initial = {}, onSave, onCancel, saving }) 
     setForm((f) => ({ ...f, [field]: e.target.value }));
     setErrors((er) => ({ ...er, [field]: '' }));
   };
+
+  console.log('customers:', customers);
+  console.log('Form state:', form);
 
   const validate = () => {
     const e = {};
@@ -382,3 +385,5 @@ export default function BookingForm({ initial = {}, onSave, onCancel, saving }) 
     </Box>
   );
 }
+
+export default BookingForm;

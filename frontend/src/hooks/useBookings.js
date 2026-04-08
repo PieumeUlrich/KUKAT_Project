@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import bookingsApi from '../api/bookingsApi';
+import { bookingsApi } from '../api/index';
 
-export function useBookings(filters = {}) {
+export const useBookings = (filters = {}) => {
   const [bookings, setBookings] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
@@ -13,8 +13,9 @@ export function useBookings(filters = {}) {
     try {
       const { data } = await bookingsApi.getAll(filters);
       // Backend returns { bookings: [], total: N }
-      setBookings(data.bookings ?? data);
-      setTotal(data.total ?? (data.bookings ?? data).length);
+      const list = data.data ?? data.bookings ?? data;
+      setBookings(Array.isArray(list) ? list : []);
+      setTotal(data.total ?? (data.bookings ?? data.data ?? data).length);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load bookings.');
     } finally {
@@ -27,7 +28,7 @@ export function useBookings(filters = {}) {
   return { bookings, loading, error, total, refetch: fetch };
 }
 
-export function useBooking(id) {
+export const useBooking = (id) => {
   const [booking,  setBooking]  = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
@@ -52,7 +53,7 @@ export function useBooking(id) {
 }
 
 // Reference data for form dropdowns
-export function useBookingFormData() {
+export const useBookingFormData = () => {
   const [data, setData]       = useState({ destinations: [], classTypes: [], fees: [], products: [] });
   const [loading, setLoading] = useState(true);
 
@@ -64,13 +65,25 @@ export function useBookingFormData() {
       bookingsApi.getProducts(),
     ]).then(([dest, cls, fees, prod]) => {
       setData({
-        destinations: dest.data,
-        classTypes:   cls.data,
-        fees:         fees.data,
-        products:     prod.data,
+        destinations: Array.isArray(dest.data) ? dest.data : (dest.data?.data ?? []),
+        classTypes:   Array.isArray(cls.data)  ? cls.data  : (cls.data?.data  ?? []),
+        fees:         Array.isArray(fees.data) ? fees.data : (fees.data?.data ?? []),
+        products:     Array.isArray(prod.data) ? prod.data : (prod.data?.data ?? []),
       });
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   return { ...data, loading };
+}
+
+export const useBookingStats = () => {
+  const [stats,   setStats]   = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    bookingsApi.getStats()
+      .then(({ data }) => setStats(data))
+      .catch(() => setStats({ total: 0, confirmed: 0, pending: 0, cancelled: 0, completed: 0 }))
+      .finally(() => setLoading(false));
+  }, []);
+  return { stats, loading };
 }

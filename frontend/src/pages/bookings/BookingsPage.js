@@ -12,14 +12,14 @@ import AppLayout from '../../components/layout/AppLayout';
 import DataTable from '../../components/common/DataTable';
 import StatusChip from '../../components/common/StatusChip';
 import BookingForm from './BookingForm';
-import { useBookings } from '../../hooks/useBookings';
-import bookingsApi from '../../api/bookingsApi';
+import { useBookings, useBookingStats } from '../../hooks/useBookings';
+import { bookingsApi } from '../../api/index';
 import { useAuth } from '../../store/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { KUKAT } from '../../styles/theme';
 
 // ── Stat card ─────────────────────────────────────────────────
-function StatCard({ label, value, icon, color, loading }) {
+const StatCard = ({ label, value, icon, color, loading }) => {
   return (
     <Card>
       <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: '16px !important' }}>
@@ -62,7 +62,7 @@ const STATUS_FILTERS = ['', 'pending', 'confirmed', 'completed', 'cancelled'];
 
 export default function BookingsPage() {
   const navigate = useNavigate();
-  const { user, isAgent } = useAuth();
+  const { user } = useAuth();
 
   const [search,     setSearch]     = useState('');
   const [status,     setStatus]     = useState('');
@@ -72,14 +72,27 @@ export default function BookingsPage() {
 
   const filters = { search, status };
   const { bookings, loading, error, total, refetch } = useBookings(filters);
+  const { stats: globalStats } = useBookingStats();
+  
+  const stats = {
+    total:     globalStats?.total     ?? 0,
+    confirmed: globalStats?.confirmed ?? 0,
+    pending:   globalStats?.pending   ?? 0,
+    cancelled: globalStats?.cancelled ?? 0,
+    completed: globalStats?.completed ?? 0,
+  };
 
   // ── Stats ──────────────────────────────────────────────────
-  const stats = {
-    total:     bookings.length,
-    confirmed: bookings.filter((b) => b.status === 'confirmed').length,
-    pending:   bookings.filter((b) => b.status === 'pending').length,
-    cancelled: bookings.filter((b) => b.status === 'cancelled').length,
-  };
+  /*
+    This stats are being calculated based on the pagination click of users
+    For use in the future
+  */
+  // const stats = {
+  //   total:     bookings.length,
+  //   confirmed: bookings.filter((b) => b.status === 'confirmed').length,
+  //   pending:   bookings.filter((b) => b.status === 'pending').length,
+  //   cancelled: bookings.filter((b) => b.status === 'cancelled').length,
+  // };
 
   // ── Create booking ─────────────────────────────────────────
   const handleCreate = useCallback(async (formData) => {
@@ -103,21 +116,25 @@ export default function BookingsPage() {
     >
       {/* ── Stats bar ──────────────────────────────────────── */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={6} sm={3}>
-          <StatCard label="Total" value={stats.total} icon={<BookOnline />}
-            color={KUKAT.navy} loading={loading} />
+        <Grid item xs={6} sm={2.4}>
+          <StatCard label="Total" value={stats.total}
+            icon={<BookOnline />} color={KUKAT.navy} loading={loading} />
         </Grid>
-        <Grid item xs={6} sm={3}>
-          <StatCard label="Confirmed" value={stats.confirmed} icon={<CheckCircle />}
-            color="#15803D" loading={loading} />
+        <Grid item xs={6} sm={2.4}>
+          <StatCard label="Confirmed" value={stats.confirmed}
+            icon={<CheckCircle />} color="#15803D" loading={loading} />
         </Grid>
-        <Grid item xs={6} sm={3}>
-          <StatCard label="Pending" value={stats.pending} icon={<HourglassEmpty />}
-            color={KUKAT.amber} loading={loading} />
+        <Grid item xs={6} sm={2.4}>
+          <StatCard label="Pending" value={stats.pending}
+            icon={<HourglassEmpty />} color={KUKAT.amber} loading={loading} />
         </Grid>
-        <Grid item xs={6} sm={3}>
-          <StatCard label="Cancelled" value={stats.cancelled} icon={<Cancel />}
-            color="#DC2626" loading={loading} />
+        <Grid item xs={6} sm={2.4}>
+          <StatCard label="Completed" value={stats.completed}
+            icon={<CheckCircle />} color={KUKAT.teal} loading={loading} />
+        </Grid>
+        <Grid item xs={6} sm={2.4}>
+          <StatCard label="Cancelled" value={stats.cancelled}
+            icon={<Cancel />} color="#DC2626" loading={loading} />
         </Grid>
       </Grid>
 

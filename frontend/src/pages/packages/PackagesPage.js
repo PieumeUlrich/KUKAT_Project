@@ -8,7 +8,7 @@ import {
 import { Add, Search, Refresh, Close, CardTravel, Edit } from '@mui/icons-material';
 import AppLayout from '../../components/layout/AppLayout';
 import { usePackages } from '../../hooks/useModules';
-import { packagesApi } from '../../api/allModulesApi';
+import { packagesApi } from '../../api/index';
 import PackageForm from './PackageForm';
 import { useAuth } from '../../store/AuthContext';
 import { KUKAT } from '../../styles/theme';

@@ -8,12 +8,12 @@ import { Add, Search, Refresh, Close, People, PersonAdd, SwapHoriz } from '@mui/
 import AppLayout from '../../components/layout/AppLayout';
 import DataTable from '../../components/common/DataTable';
 import CustomerForm from './CustomerForm';
-import { useCustomers } from '../../hooks/useModules';
-import { customersApi } from '../../api/allModulesApi';
+import { useCustomers, useCustomerStats } from '../../hooks/useModules';
+import { customersApi } from '../../api/index';
 import { useAuth, ROLES } from '../../store/AuthContext';
 import { KUKAT } from '../../styles/theme';
 
-function StatCard({ label, value, icon, color, loading }) {
+const StatCard = ({ label, value, icon, color, loading }) => {
   return (
     <Card><CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: '16px !important' }}>
       <Box sx={{ width: 44, height: 44, borderRadius: '11px', background: `${color}18`,
@@ -52,7 +52,7 @@ const COLUMNS = [
   { id: 'bookingCount', label: 'Bookings', minWidth: 90, align: 'center' },
 ];
 
-export default function CustomersPage() {
+const CustomersPage = () => {
   const navigate = useNavigate();
   const { isHR, isAdmin, isManager } = useAuth();
   const [search,     setSearch]     = useState('');
@@ -61,6 +61,7 @@ export default function CustomersPage() {
   const [saveError,  setSaveError]  = useState('');
 
   const { customers: rawCustomers, loading, error, total, refetch } = useCustomers({ search });
+  const { stats: globalStats } = useCustomerStats();
   const customers = rawCustomers ?? [];
 
   const handleCreate = useCallback(async (data) => {
@@ -84,16 +85,12 @@ export default function CustomersPage() {
         </Grid>
         <Grid item xs={12} sm={4}>
           <StatCard label="New this month"
-            value={customers.filter(c => {
-              const d = new Date(c.createdAt);
-              const now = new Date();
-              return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-            }).length}
+            value={globalStats?.newThisMonth ?? 0}
             icon={<PersonAdd />} color={KUKAT.amber} loading={loading} />
         </Grid>
         <Grid item xs={12} sm={4}>
           <StatCard label="With active bookings"
-            value={customers.filter(c => c.bookingCount > 0).length}
+            value={globalStats?.withBookings ?? 0}
             icon={<SwapHoriz />} color={KUKAT.navy} loading={loading} />
         </Grid>
       </Grid>
@@ -133,3 +130,5 @@ export default function CustomersPage() {
     </AppLayout>
   );
 }
+
+export default CustomersPage;

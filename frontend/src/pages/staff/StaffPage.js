@@ -7,8 +7,8 @@ import {
 import { Add, Search, Refresh, Close, ManageAccounts } from '@mui/icons-material';
 import AppLayout from '../../components/layout/AppLayout';
 import DataTable from '../../components/common/DataTable';
-import { useStaff } from '../../hooks/useModules';
-import { staffApi } from '../../api/allModulesApi';
+import { useStaff, useStaffStats } from '../../hooks/useModules';
+import { staffApi } from '../../api/index';
 import { KUKAT } from '../../styles/theme';
 
 const ROLE_COLORS = {
@@ -56,7 +56,7 @@ const COLUMNS = [
 ];
 
 // ── Staff Form ─────────────────────────────────────────────────
-const StaffForm = ({ initial = {}, onSave, onCancel, saving }) => {
+function StaffForm({ initial = {}, onSave, onCancel, saving }) {
   const [form,   setForm]   = useState({
     firstName: '', lastName: '', email: '', agentCode: '', phoneNumber: '',
     address1: '', city: '', province: '', postalCode: '', country: 'Canada',
@@ -67,7 +67,7 @@ const StaffForm = ({ initial = {}, onSave, onCancel, saving }) => {
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    staffApi.getRoles().then(({ data }) => setRoles(data.roles ?? data)).catch(() => {});
+    staffApi.getRoles().then(({ data }) => setRoles(Array.isArray(data) ? data : (data.roles ?? []))).catch(() => {});
   }, []);
 
   const set = (f) => (e) => { setForm(p => ({ ...p, [f]: e.target.value })); setErrors(p => ({ ...p, [f]: '' })); };
@@ -158,7 +158,7 @@ const StaffForm = ({ initial = {}, onSave, onCancel, saving }) => {
 }
 
 // ── Staff Page ─────────────────────────────────────────────────
-export const StaffPage = () => {
+export default function StaffPage() {
   const [search,     setSearch]     = useState('');
   const [role,       setRole]       = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -167,12 +167,13 @@ export const StaffPage = () => {
   const [saveError,  setSaveError]  = useState('');
 
   const { staff, loading, error, refetch } = useStaff({ search, role });
+  const { stats: globalStats } = useStaffStats();
   const safeStaff = staff ?? [];
 
   const totals = {
-    total:   safeStaff.length,
-    active:  safeStaff.filter(s => s.isActive).length,
-    agents:  safeStaff.filter(s => s.roleName === 'agent').length,
+    total:  globalStats?.total  ?? safeStaff.length,
+    active: globalStats?.active ?? safeStaff.filter(s => s.isActive).length,
+    agents: globalStats?.agents ?? safeStaff.filter(s => s.roleName === 'agent').length,
   };
 
   const handleSave = useCallback(async (data) => {
@@ -188,7 +189,7 @@ export const StaffPage = () => {
 
   return (
     <AppLayout title="Staff management" subtitle={`${totals.total} employee${totals.total !== 1 ? 's' : ''}`}>
-      <Grid container spacing={3} sx={{ mb: 3 }}>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
         {[
           { label: 'Total staff',  value: totals.total,  color: KUKAT.navy },
           { label: 'Active',       value: totals.active, color: '#15803D' },
@@ -223,7 +224,7 @@ export const StaffPage = () => {
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <DataTable columns={COLUMNS} rows={staff} loading={loading} keyField="employeeID"
+      <DataTable columns={COLUMNS} rows={safeStaff} loading={loading} keyField="employeeID"
         onRowClick={(row) => { setSelected(row); setSaveError(''); setDrawerOpen(true); }}
         emptyMessage="No employees found." />
 
@@ -249,4 +250,3 @@ export const StaffPage = () => {
     </AppLayout>
   );
 }
-export default StaffPage;

@@ -2,10 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   customersApi, invoicesApi, commissionsApi,
   packagesApi, staffApi, reportsApi,
-} from '../api/allModulesApi';
+} from '../api/index';
 
 // ── Customers ─────────────────────────────────────────────────
-export function useCustomers(filters = {}) {
+export const useCustomers = (filters = {}) => {
   const [customers, setCustomers] = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState(null);
@@ -16,7 +16,7 @@ export function useCustomers(filters = {}) {
     setLoading(true); setError(null);
     try {
       const { data } = await customersApi.getAll(filters);
-      const list = data.customers ?? data;
+      const list = data.customers ?? data.data ?? data;
       setCustomers(Array.isArray(list) ? list : []);
       setTotal(data.total ?? list.length);
     } catch (e) {
@@ -29,7 +29,7 @@ export function useCustomers(filters = {}) {
   return { customers, loading, error, total, refetch: fetch };
 }
 
-export function useCustomer(id) {
+export const useCustomer = (id) => {
   const [customer, setCustomer] = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
@@ -50,7 +50,7 @@ export function useCustomer(id) {
 }
 
 // ── Invoices ──────────────────────────────────────────────────
-export function useInvoices(filters = {}) {
+export const useInvoices = (filters = {}) => {
   const [invoices, setInvoices] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
@@ -61,7 +61,7 @@ export function useInvoices(filters = {}) {
     setLoading(true); setError(null);
     try {
       const { data } = await invoicesApi.getAll(filters);
-      const list = data.invoices ?? data;
+      const list = data.invoices ?? data.data ?? data;
       setInvoices(Array.isArray(list) ? list : []);
       setTotal(data.total ?? list.length);
     } catch (e) {
@@ -74,7 +74,7 @@ export function useInvoices(filters = {}) {
   return { invoices, loading, error, total, refetch: fetch };
 }
 
-export function useInvoice(id) {
+export const useInvoice = (id) => {
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
@@ -95,7 +95,7 @@ export function useInvoice(id) {
 }
 
 // ── Commissions ───────────────────────────────────────────────
-export function useCommissions(filters = {}) {
+export const useCommissions = (filters = {}) => {
   const [commissions, setCommissions] = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState(null);
@@ -106,7 +106,7 @@ export function useCommissions(filters = {}) {
     setLoading(true); setError(null);
     try {
       const { data } = await commissionsApi.getAll(filters);
-      const list = data.commissions ?? data;
+      const list = data.commissions ?? data.data ?? data;
       setCommissions(Array.isArray(list) ? list : []);
       setTotal(data.total ?? list.length);
     } catch (e) {
@@ -120,7 +120,7 @@ export function useCommissions(filters = {}) {
 }
 
 // ── Packages ──────────────────────────────────────────────────
-export function usePackages(filters = {}) {
+export const usePackages = (filters = {}) => {
   const [packages, setPackages] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
@@ -130,7 +130,7 @@ export function usePackages(filters = {}) {
     setLoading(true); setError(null);
     try {
       const { data } = await packagesApi.getAll(filters);
-      const list = data.products ?? data;
+      const list = data.products ?? data.data ?? data;
       setPackages(Array.isArray(list) ? list : []);
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to load packages.');
@@ -142,7 +142,7 @@ export function usePackages(filters = {}) {
   return { packages, loading, error, refetch: fetch };
 }
 
-export function usePackageFormData() {
+export const usePackageFormData = () => {
   const [categories, setCategories] = useState([]);
   const [suppliers,  setSuppliers]  = useState([]);
   const [loading,    setLoading]    = useState(true);
@@ -161,7 +161,7 @@ export function usePackageFormData() {
 }
 
 // ── Staff ─────────────────────────────────────────────────────
-export function useStaff(filters = {}) {
+export const useStaff = (filters = {}) => {
   const [staff,   setStaff]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
@@ -171,7 +171,7 @@ export function useStaff(filters = {}) {
     setLoading(true); setError(null);
     try {
       const { data } = await staffApi.getAll(filters);
-      const list = data.employees ?? data;
+      const list = data.employees ?? data.data ?? data;
       setStaff(Array.isArray(list) ? list : []);
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to load staff.');
@@ -183,7 +183,7 @@ export function useStaff(filters = {}) {
   return { staff, loading, error, refetch: fetch };
 }
 
-export function useRoles() {
+export const useRoles = () => {
   const [roles,   setRoles]   = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -198,7 +198,7 @@ export function useRoles() {
 }
 
 // ── Reports ───────────────────────────────────────────────────
-export function useReports(params = {}) {
+export const useReports = (params = {}) => {
   const [report,  setReport]  = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
@@ -207,17 +207,20 @@ export function useReports(params = {}) {
   const fetch = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const [revenue, bookings, agents, topDest] = await Promise.all([
+      const [revenue, bookings, agents, topDest, comm] = await Promise.all([
         reportsApi.getRevenueSummary(params),
         reportsApi.getBookingStats(params),
         reportsApi.getAgentPerformance(params),
         reportsApi.getTopDestinations(params),
+        reportsApi.getCommissionReport(params),
       ]);
       setReport({
-        revenue:      revenue.data ?? [],
-        bookings:     bookings.data ?? {},
-        agents:       agents.data ?? [],
-        destinations: topDest.data ?? [],
+        revenue:      revenue.data ?? revenue ?? [],
+        bookings:     bookings.data ?? bookings ?? {},
+        agents:       agents.data ?? agents ?? [],
+        destinations: topDest.data ?? topDest ?? [],
+        commissions:  comm.data ?? comm ?? {},
+
       });
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to load reports.');
@@ -227,4 +230,53 @@ export function useReports(params = {}) {
 
   useEffect(() => { fetch(); }, [fetch]);
   return { report, loading, error, refetch: fetch };
+}
+
+// ── Stats hooks (accurate counts across all records) ──────────
+export const useCustomerStats = () => {
+  const [stats,   setStats]   = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    customersApi.getStats()
+      .then(({ data }) => setStats(data))
+      .catch(() => setStats({ total: 0, withBookings: 0, newThisMonth: 0 }))
+      .finally(() => setLoading(false));
+  }, []);
+  return { stats, loading };
+}
+
+export const useInvoiceStats = () => {
+  const [stats,   setStats]   = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    invoicesApi.getStats()
+      .then(({ data }) => setStats(data))
+      .catch(() => setStats({ total: 0, paid: 0, unpaid: 0, partial: 0, totalCollected: 0, totalOutstanding: 0 }))
+      .finally(() => setLoading(false));
+  }, []);
+  return { stats, loading };
+}
+
+export const useCommissionStats = () => {
+  const [stats,   setStats]   = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    commissionsApi.getStats()
+      .then(({ data }) => setStats(data))
+      .catch(() => setStats({ total: 0, pending: 0, approved: 0, paid: 0, totalPaid: 0, bonusCount: 0 }))
+      .finally(() => setLoading(false));
+  }, []);
+  return { stats, loading };
+}
+
+export const useStaffStats = () => {
+  const [stats,   setStats]   = useState(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    staffApi.getStats()
+      .then(({ data }) => setStats(data))
+      .catch(() => setStats({ total: 0, active: 0, inactive: 0, agents: 0 }))
+      .finally(() => setLoading(false));
+  }, []);
+  return { stats, loading };
 }
