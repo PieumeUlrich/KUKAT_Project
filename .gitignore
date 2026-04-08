@@ -45,3 +45,6 @@ coverage/
 *.tsbuildinfo
 .npm
 .cache
+
+# ── GitHub ────────────────────────────────────────────────────
+.github/
