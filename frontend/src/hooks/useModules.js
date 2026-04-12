@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   customersApi, invoicesApi, commissionsApi,
-  packagesApi, staffApi, reportsApi,
+  packagesApi, staffApi, reportsApi, 
+  dashboardApi, notificationsApi
 } from '../api/index';
 
 // ── Customers ─────────────────────────────────────────────────
@@ -217,8 +218,8 @@ export const useReports = (params = {}) => {
       setReport({
         revenue:      revenue.data ?? revenue ?? [],
         bookings:     bookings.data ?? bookings ?? {},
-        agents:       agents.data ?? agents ?? [],
-        destinations: topDest.data ?? topDest ?? [],
+        agents:       Array.isArray(agents.data) ? agents.data : Array.isArray(agents) ? agents : [],
+        destinations: Array.isArray(topDest.data) ? topDest.data : Array.isArray(topDest) ? topDest : [],
         commissions:  comm.data ?? comm ?? {},
 
       });
@@ -279,4 +280,42 @@ export const useStaffStats = () => {
       .finally(() => setLoading(false));
   }, []);
   return { stats, loading };
+}
+
+export const useDashboard = () => {
+  const [data,    setData]    = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(null);
+
+  const fetch = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const { data: res } = await dashboardApi.get();
+      setData(res.dashboard ?? res.data ?? res ?? {});
+    } catch (e) {
+      setError(e.response?.data?.message || 'Failed to load dashboard.');
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetch(); }, [fetch]);
+  return { data, loading, error, refetch: fetch };
+}
+
+export const useNotifications = () => {
+  const [notifications, setNotifications] = useState([]);
+  const [total,         setTotal]         = useState(0);
+  const [loading,       setLoading]       = useState(true);
+
+  const fetch = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await notificationsApi.get();
+      setNotifications(data.notifications ?? data.data ?? data ?? []);
+      setTotal(data.total ?? 0);
+    } catch { setNotifications([]); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetch(); }, [fetch]);
+  return { notifications, total, loading, refetch: fetch };
 }

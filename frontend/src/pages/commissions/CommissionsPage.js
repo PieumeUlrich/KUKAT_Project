@@ -129,8 +129,11 @@ export default function CommissionsPage() {
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <DataTable columns={COLUMNS} rows={commissions} loading={loading}
-        keyField="commissionID" emptyMessage="No commissions found." />
+      <DataTable 
+        columns={COLUMNS} rows={commissions} loading={loading}
+        keyField="commissionID" emptyMessage="No commissions found."
+        onRowClick={(row) => navigate(`/commissions/${row.commissionID}`)}
+      />
     </AppLayout>
   );
 }

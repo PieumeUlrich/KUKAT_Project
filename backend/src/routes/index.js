@@ -1,6 +1,7 @@
 import { Router }    from 'express';
 import { query, sql } from '../config/db.js';
 import { authenticate, authorize } from '../middleware/auth.js';
+
 import * as auth        from '../controllers/authController.js';
 import * as customers   from '../controllers/customersController.js';
 import * as bookings    from '../controllers/bookingsController.js';
@@ -9,6 +10,8 @@ import * as commissions from '../controllers/commissionsController.js';
 import * as employees   from '../controllers/employeesController.js';
 import * as products    from '../controllers/productsController.js';
 import * as reports     from '../controllers/reportsController.js';
+import * as dashboard   from '../controllers/dashboardController.js';
+import * as automation  from '../controllers/automationController.js';
 
 const router = Router();
 
@@ -24,6 +27,13 @@ router.post('/auth/logout',          authenticate, auth.logout);
 router.get ('/auth/me',              authenticate, auth.getMe);
 router.put ('/auth/change-password', authenticate, auth.changePassword);
 
+// ── Dashboard ─────────────────────────────────────────────────
+router.get('/dashboard', authenticate, dashboard.getDashboard);
+
+// ── Notifications ─────────────────────────────────────────────
+router.get('/notifications', authenticate, automation.getNotifications);
+
+
 // ── Customers ─────────────────────────────────────────────────
 // IMPORTANT: /stats must be before /:id
 router.get ('/customers/stats',        authenticate, authorize(SA, MGR, AGT, HR), customers.getStats);
@@ -35,14 +45,18 @@ router.put ('/customers/:id/reassign', authenticate, authorize(SA, MGR, HR),    
 router.get ('/customers/:id/cards',    authenticate, authorize(SA, MGR, AGT, HR), customers.getCards);
 
 // ── Bookings ──────────────────────────────────────────────────
+// IMPORTANT: /stats and sub-paths must be before /:id
 router.get   ('/bookings/stats',                   authenticate, authorize(SA, MGR, AGT),     bookings.getStats);
 router.get   ('/bookings',                         authenticate, authorize(SA, MGR, AGT),     bookings.getAll);
 router.post  ('/bookings',                         authenticate, authorize(SA, MGR, AGT),     bookings.create);
-router.get   ('/bookings/:id',                     authenticate, authorize(SA, MGR, AGT),     bookings.getById);
-router.put   ('/bookings/:id',                     authenticate, authorize(SA, MGR, AGT),     bookings.update);
+router.put   ('/bookings/:id/confirm',             authenticate, authorize(SA, MGR, AGT),     automation.confirmBooking);
+router.put   ('/bookings/:id/complete',            authenticate, authorize(SA, MGR),          automation.completeBooking);
+router.put   ('/bookings/:id/cancel',              authenticate, authorize(SA, MGR),          automation.cancelBooking);
 router.get   ('/bookings/:id/members',             authenticate, authorize(SA, MGR, AGT),     bookings.getMembers);
 router.post  ('/bookings/:id/members',             authenticate, authorize(SA, MGR, AGT),     bookings.addMember);
 router.delete('/bookings/:id/members/:customerID', authenticate, authorize(SA, MGR),          bookings.removeMember);
+router.get   ('/bookings/:id',                     authenticate, authorize(SA, MGR, AGT),     bookings.getById);
+router.put   ('/bookings/:id',                     authenticate, authorize(SA, MGR, AGT),     bookings.update);
 
 // ── Invoices ──────────────────────────────────────────────────
 router.get ('/invoices/stats',          authenticate, authorize(SA, MGR, ACC),     invoices.getStats);

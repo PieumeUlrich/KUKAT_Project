@@ -44,7 +44,10 @@ export default function HRPage() {
 
   useEffect(() => {
     staffApi.getAll({ role: 'agent' })
-      .then(({ data }) => setAgents(data.employees ?? data.data ?? data))
+      .then(({ data }) => {
+        const list = data.employees ?? data.data ?? data;
+        setAgents(Array.isArray(list) ? list : []);
+      })
       .catch(() => {});
   }, []);
 

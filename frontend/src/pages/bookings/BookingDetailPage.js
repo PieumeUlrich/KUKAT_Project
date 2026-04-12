@@ -4,11 +4,12 @@ import {
   Box, Grid, Card, CardContent, CardHeader, Typography,
   Button, Divider, Chip, Alert, Skeleton, IconButton,
   Drawer, Table, TableHead, TableRow, TableCell, TableBody,
-  Tooltip,
+  CircularProgress,
 } from '@mui/material';
 import {
   ArrowBack, Edit, Receipt, Group, Close,
-  Person, Flight, AttachMoney,
+  Person, Flight, AttachMoney, CheckCircle,
+  Cancel, Done,
 } from '@mui/icons-material';
 import AppLayout from '../../components/layout/AppLayout';
 import StatusChip from '../../components/common/StatusChip';
@@ -41,6 +42,19 @@ export default function BookingDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [saving,   setSaving]   = useState(false);
   const [saveErr,  setSaveErr]  = useState('');
+
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const handleAction = useCallback(async (action) => {
+    setActionLoading(true);
+      setSaveErr('');
+      try {
+        await bookingsApi[action](id);
+        refetch();
+      } catch (err) {
+        setSaveErr(err.response?.data?.message || `Failed to ${action} booking.`);
+      } finally { setActionLoading(false); }
+  }, [id, refetch]);
 
   const handleSave = useCallback(async (data) => {
     setSaving(true);
@@ -79,17 +93,41 @@ export default function BookingDetailPage() {
       title={`Booking #${b.bookingID}`}
       subtitle={b.productName || ''}
     >
-      {/* ── Back + actions ─────────────────────────────────── */}
+{/* ── Back + actions ─────────────────────────────────── */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Button startIcon={<ArrowBack />} onClick={() => navigate('/bookings')}
           variant="outlined" size="small">
           Back to bookings
         </Button>
-        <Box sx={{ display: 'flex', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
           {b.invoiceID && (
             <Button startIcon={<Receipt />} variant="outlined" size="small"
               onClick={() => navigate(`/invoices/${b.invoiceID}`)}>
               View invoice
+            </Button>
+          )}
+          {b.status === 'pending' && (
+            <Button variant="outlined" color="success" size="small"
+              startIcon={actionLoading ? <CircularProgress size={14} /> : <CheckCircle />}
+              disabled={actionLoading}
+              onClick={() => handleAction('confirm')}>
+              Confirm
+            </Button>
+          )}
+          {b.status === 'confirmed' && (
+            <Button variant="outlined" color="info" size="small"
+              startIcon={actionLoading ? <CircularProgress size={14} /> : <Done />}
+              disabled={actionLoading}
+              onClick={() => handleAction('complete')}>
+              Mark completed
+            </Button>
+          )}
+          {['pending', 'confirmed'].includes(b.status) && (
+            <Button variant="outlined" color="error" size="small"
+              startIcon={actionLoading ? <CircularProgress size={14} /> : <Cancel />}
+              disabled={actionLoading}
+              onClick={() => handleAction('cancel')}>
+              Cancel
             </Button>
           )}
           <Button startIcon={<Edit />} variant="contained" size="small"
@@ -98,7 +136,7 @@ export default function BookingDetailPage() {
           </Button>
         </Box>
       </Box>
-
+      
       {saveErr && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSaveErr('')}>{saveErr}</Alert>}
 
       <Grid container spacing={2.5}>

@@ -18,6 +18,7 @@ import {
   ChevronLeft, ChevronRight,
   Logout as LogoutIcon,
   Settings as SettingsIcon,
+  LockOutlined as LockOutlinedIcon,
 } from '@mui/icons-material';
 import { useAuth, ROLES } from '../../store/AuthContext';
 import { KUKAT } from '../../styles/theme';
@@ -81,6 +82,12 @@ const NAV_ITEMS = [
     path: '/hr',
     roles: [ROLES.SUPERADMIN, ROLES.HR],
   },
+  {
+  label: 'Change password',
+  icon:  <LockOutlinedIcon />,
+  path:  '/change-password',
+  roles: Object.values(ROLES),
+},
 ];
 
 // ── Role badge config ─────────────────────────────────────────

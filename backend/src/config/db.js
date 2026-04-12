@@ -1,28 +1,6 @@
 
 import 'dotenv/config';
 import sql from 'mssql';
-import 'msnodesqlv8';
-
-// const config = {
-//   server:   process.env.DB_SERVER,
-//   database: process.env.DB_DATABASE,
-//   port:     parseInt(process.env.DB_PORT || '1433'),
-//   driver:   'msnodesqlv8',
-//   options: {
-//     encrypt:              process.env.DB_ENCRYPT !== 'false',
-//     trustServerCertificate: process.env.DB_TRUST_SERVER_CERT === 'true',
-//     enableArithAbort:     true,
-//     trustedConnection:    true,
-//     integratedSecurity:   true,
-//   },
-//   pool: {
-//     max:              10,
-//     min:              0,
-//     idleTimeoutMillis: 30000,
-//   },
-//   connectionTimeout: 30000,
-//   requestTimeout:    30000,
-// };
 
 /********** CONFIGURATION AZURE SERVER CONNECTION **********/
 const config = {

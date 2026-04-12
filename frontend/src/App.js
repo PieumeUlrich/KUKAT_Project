@@ -20,6 +20,9 @@ import CommissionsPage    from './pages/commissions/CommissionsPage';
 import ReportsPage        from './pages/reports/ReportsPage';
 import StaffPage          from './pages/staff/StaffPage';
 import HRPage             from './pages/hr/HRPage';
+import InvoiceDetailPage     from './pages/invoices/InvoiceDetailPage';
+import CommissionDetailPage  from './pages/commissions/CommissionDetailPage';
+import ChangePasswordPage    from './pages/auth/ChangePasswordPage';
 
 const { SUPERADMIN, MANAGER, AGENT, ACCOUNTANT, HR } = ROLES;
 
@@ -72,9 +75,21 @@ function App() {
               </ProtectedRoute>
             } />
 
+            <Route path="/invoices/:id" element={
+              <ProtectedRoute roles={[SUPERADMIN, MANAGER, ACCOUNTANT]}>
+                <InvoiceDetailPage />
+              </ProtectedRoute>
+            } />
+
             <Route path="/commissions" element={
               <ProtectedRoute roles={[SUPERADMIN, MANAGER, AGENT, ACCOUNTANT]}>
                 <CommissionsPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="/commissions/:id" element={
+              <ProtectedRoute roles={[SUPERADMIN, MANAGER, AGENT, ACCOUNTANT]}>
+                <CommissionDetailPage />
               </ProtectedRoute>
             } />
 
@@ -97,7 +112,14 @@ function App() {
             } />
 
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
+
+            <Route path="/change-password" element={
+              <ProtectedRoute>
+                <ChangePasswordPage />
+              </ProtectedRoute>
+            } />
+
+            </Routes>
         </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>

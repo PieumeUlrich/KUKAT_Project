@@ -15,6 +15,9 @@ export const bookingsApi = {
   getBookingFees:  () => api.get('/booking-fees'),
   getProducts:     () => api.get('/products'),
   getCustomers:    (params = {}) => api.get('/customers', { params: { ...params, limit: 'all' } }),
+  confirm:         (id)          => api.put(`/bookings/${id}/confirm`),
+  complete:        (id)          => api.put(`/bookings/${id}/complete`),
+  cancel:          (id)          => api.put(`/bookings/${id}/cancel`),
 };
 
 export const customersApi = {
@@ -84,4 +87,18 @@ export const reportsApi = {
   getCommissionReport: (params = {}) => api.get('/reports/commissions',        { params }),
   getTopCustomers:     (params = {}) => api.get('/reports/top-customers',      { params }),
   getTopDestinations:  (params = {}) => api.get('/reports/top-destinations',   { params }),
+};
+
+export const dashboardApi = {
+  get: () => api.get('/dashboard'),
+};
+
+export const notificationsApi = {
+  get: () => api.get('/notifications'),
+};
+
+export const bookingActionsApi = {
+  confirm:  (id) => api.put(`/bookings/${id}/confirm`),
+  complete: (id) => api.put(`/bookings/${id}/complete`),
+  cancel:   (id) => api.put(`/bookings/${id}/cancel`),
 };
