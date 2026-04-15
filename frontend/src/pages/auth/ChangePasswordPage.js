@@ -47,19 +47,32 @@ export default function ChangePasswordPage() {
       setSuccess(true);
       setForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to change password.');
+      const message = err.response?.data?.message || 'Failed to change password.';
+      if (message.toLowerCase().includes('incorrect') ||
+          message.toLowerCase().includes('current') ||
+          err.response?.status === 401) {
+        setErrors(prev => ({ ...prev, currentPassword: 'Incorrect password' }));
+      } else {
+        setError(message);
+      }
     } finally { setLoading(false); }
   };
 
   return (
     <AppLayout title="Change password" subtitle="Update your account password">
-      <Box sx={{ maxWidth: 480 }}>
+
+      <Box sx={{
+        maxWidth: 520,
+        width: '100%',
+      }}>
         <Card>
-          <CardContent sx={{ p: 3 }}>
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+
+            {/* ── Header ─────────────────────────────────────── */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
               <Box sx={{
                 width: 40, height: 40, borderRadius: '10px',
-                background: `${KUKAT.navy}12`,
+                background: `${KUKAT.navy}12`, flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <Lock sx={{ color: KUKAT.navy, fontSize: 20 }} />
@@ -75,7 +88,9 @@ export default function ChangePasswordPage() {
             </Box>
 
             {error && (
-              <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>
+              <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+                {error}
+              </Alert>
             )}
             {success && (
               <Alert severity="success" icon={<CheckCircle />} sx={{ mb: 2 }}>
@@ -83,18 +98,22 @@ export default function ChangePasswordPage() {
               </Alert>
             )}
 
-            <Box component="form" onSubmit={handleSubmit} noValidate>
+            {/* ── Form ───────────────────────────────────────── */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}
+              component="form" onSubmit={handleSubmit} noValidate>
+
               <TextField
                 fullWidth label="Current password"
                 type={showCurrent ? 'text' : 'password'}
                 value={form.currentPassword} onChange={set('currentPassword')}
                 error={!!errors.currentPassword} helperText={errors.currentPassword}
-                sx={{ mb: 2.5 }}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton onClick={() => setShowCurrent(p => !p)} edge="end" size="small">
-                        {showCurrent ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                        {showCurrent
+                          ? <VisibilityOff fontSize="small" />
+                          : <Visibility fontSize="small" />}
                       </IconButton>
                     </InputAdornment>
                   ),
@@ -105,13 +124,15 @@ export default function ChangePasswordPage() {
                 fullWidth label="New password"
                 type={showNew ? 'text' : 'password'}
                 value={form.newPassword} onChange={set('newPassword')}
-                error={!!errors.newPassword} helperText={errors.newPassword || 'Minimum 8 characters'}
-                sx={{ mb: 2.5 }}
+                error={!!errors.newPassword}
+                helperText={errors.newPassword || 'Minimum 8 characters'}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton onClick={() => setShowNew(p => !p)} edge="end" size="small">
-                        {showNew ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                        {showNew
+                          ? <VisibilityOff fontSize="small" />
+                          : <Visibility fontSize="small" />}
                       </IconButton>
                     </InputAdornment>
                   ),
@@ -123,7 +144,6 @@ export default function ChangePasswordPage() {
                 type="password"
                 value={form.confirmPassword} onChange={set('confirmPassword')}
                 error={!!errors.confirmPassword} helperText={errors.confirmPassword}
-                sx={{ mb: 3 }}
               />
 
               <Button type="submit" variant="contained" fullWidth
@@ -132,10 +152,12 @@ export default function ChangePasswordPage() {
                   ? <CircularProgress size={22} sx={{ color: '#fff' }} />
                   : 'Update password'}
               </Button>
+
             </Box>
           </CardContent>
         </Card>
       </Box>
-    </AppLayout>
+
+    </AppLayout>  
   );
 }

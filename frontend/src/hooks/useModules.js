@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   customersApi, invoicesApi, commissionsApi,
   packagesApi, staffApi, reportsApi, 
-  dashboardApi, notificationsApi
+  dashboardApi, notificationsApi,
 } from '../api/index';
 
 // ── Customers ─────────────────────────────────────────────────
-export const useCustomers = (filters = {}) => {
+export function useCustomers(filters = {}) {
   const [customers, setCustomers] = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState(null);
@@ -30,7 +30,7 @@ export const useCustomers = (filters = {}) => {
   return { customers, loading, error, total, refetch: fetch };
 }
 
-export const useCustomer = (id) => {
+export function useCustomer(id) {
   const [customer, setCustomer] = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
@@ -51,7 +51,7 @@ export const useCustomer = (id) => {
 }
 
 // ── Invoices ──────────────────────────────────────────────────
-export const useInvoices = (filters = {}) => {
+export function useInvoices(filters = {}) {
   const [invoices, setInvoices] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
@@ -75,7 +75,7 @@ export const useInvoices = (filters = {}) => {
   return { invoices, loading, error, total, refetch: fetch };
 }
 
-export const useInvoice = (id) => {
+export function useInvoice(id) {
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
@@ -96,7 +96,7 @@ export const useInvoice = (id) => {
 }
 
 // ── Commissions ───────────────────────────────────────────────
-export const useCommissions = (filters = {}) => {
+export function useCommissions(filters = {}) {
   const [commissions, setCommissions] = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState(null);
@@ -121,7 +121,7 @@ export const useCommissions = (filters = {}) => {
 }
 
 // ── Packages ──────────────────────────────────────────────────
-export const usePackages = (filters = {}) => {
+export function usePackages(filters = {}) {
   const [packages, setPackages] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
@@ -143,7 +143,7 @@ export const usePackages = (filters = {}) => {
   return { packages, loading, error, refetch: fetch };
 }
 
-export const usePackageFormData = () => {
+export function usePackageFormData() {
   const [categories, setCategories] = useState([]);
   const [suppliers,  setSuppliers]  = useState([]);
   const [loading,    setLoading]    = useState(true);
@@ -162,7 +162,7 @@ export const usePackageFormData = () => {
 }
 
 // ── Staff ─────────────────────────────────────────────────────
-export const useStaff = (filters = {}) => {
+export function useStaff(filters = {}) {
   const [staff,   setStaff]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
@@ -184,7 +184,7 @@ export const useStaff = (filters = {}) => {
   return { staff, loading, error, refetch: fetch };
 }
 
-export const useRoles = () => {
+export function useRoles() {
   const [roles,   setRoles]   = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -199,42 +199,54 @@ export const useRoles = () => {
 }
 
 // ── Reports ───────────────────────────────────────────────────
-export const useReports = (params = {}) => {
+export function useReports(params = {}) {
   const [report,  setReport]  = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
 
   const key = JSON.stringify(params);
-  const fetch = useCallback(async () => {
-    setLoading(true); setError(null);
-    try {
-      const [revenue, bookings, agents, topDest, comm] = await Promise.all([
-        reportsApi.getRevenueSummary(params),
-        reportsApi.getBookingStats(params),
-        reportsApi.getAgentPerformance(params),
-        reportsApi.getTopDestinations(params),
-        reportsApi.getCommissionReport(params),
-      ]);
-      setReport({
-        revenue:      revenue.data ?? revenue ?? [],
-        bookings:     bookings.data ?? bookings ?? {},
-        agents:       Array.isArray(agents.data) ? agents.data : Array.isArray(agents) ? agents : [],
-        destinations: Array.isArray(topDest.data) ? topDest.data : Array.isArray(topDest) ? topDest : [],
-        commissions:  comm.data ?? comm ?? {},
 
-      });
-    } catch (e) {
-      setError(e.response?.data?.message || 'Failed to load reports.');
-    } finally { setLoading(false); }
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true); setError(null);
+      try {
+        const [revenue, bookings, agents, topDest, topProd, trend, commReport] = await Promise.all([
+          reportsApi.getRevenueSummary(params),
+          reportsApi.getBookingStats(params),
+          reportsApi.getAgentPerformance(params),
+          reportsApi.getTopDestinations(params),
+          reportsApi.getTopProducts(params),
+          reportsApi.getRevenueTrend(params),
+          reportsApi.getCommissionReport(params),
+        ]);
+        if (!cancelled) {
+          setReport({
+            revenue:      revenue.data ?? {},
+            bookings:     bookings.data ?? {},
+            agents:       Array.isArray(agents.data) ? agents.data : [],
+            destinations: Array.isArray(topDest.data) ? topDest.data : [],
+            products:     Array.isArray(topProd.data) ? topProd.data : [],
+            trend:        Array.isArray(trend.data)   ? trend.data   : [],
+            commissions:  commReport.data ?? {},
+          });
+        }
+      } catch (e) {
+        if (!cancelled) setError(e.response?.data?.message || 'Failed to load reports.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
-  useEffect(() => { fetch(); }, [fetch]);
-  return { report, loading, error, refetch: fetch };
+  return { report, loading, error };
 }
 
 // ── Stats hooks (accurate counts across all records) ──────────
-export const useCustomerStats = () => {
+export function useCustomerStats() {
   const [stats,   setStats]   = useState(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -246,7 +258,7 @@ export const useCustomerStats = () => {
   return { stats, loading };
 }
 
-export const useInvoiceStats = () => {
+export function useInvoiceStats() {
   const [stats,   setStats]   = useState(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -258,7 +270,7 @@ export const useInvoiceStats = () => {
   return { stats, loading };
 }
 
-export const useCommissionStats = () => {
+export function useCommissionStats() {
   const [stats,   setStats]   = useState(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -270,7 +282,7 @@ export const useCommissionStats = () => {
   return { stats, loading };
 }
 
-export const useStaffStats = () => {
+export function useStaffStats() {
   const [stats,   setStats]   = useState(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -282,26 +294,37 @@ export const useStaffStats = () => {
   return { stats, loading };
 }
 
-export const useDashboard = () => {
+// ── Dashboard ─────────────────────────────────────────────────
+export function useDashboard(params = {}) {
   const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
 
-  const fetch = useCallback(async () => {
-    setLoading(true); setError(null);
-    try {
-      const { data: res } = await dashboardApi.get();
-      setData(res.dashboard ?? res.data ?? res ?? {});
-    } catch (e) {
-      setError(e.response?.data?.message || 'Failed to load dashboard.');
-    } finally { setLoading(false); }
-  }, []);
+  const key = JSON.stringify(params);
 
-  useEffect(() => { fetch(); }, [fetch]);
-  return { data, loading, error, refetch: fetch };
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true); setError(null);
+      try {
+        const { data: res } = await dashboardApi.get(params);
+        if (!cancelled) setData(res);
+      } catch (e) {
+        if (!cancelled) setError(e.response?.data?.message || 'Failed to load dashboard.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  return { data, loading, error };
 }
 
-export const useNotifications = () => {
+// ── Notifications ─────────────────────────────────────────────
+export function useNotifications() {
   const [notifications, setNotifications] = useState([]);
   const [total,         setTotal]         = useState(0);
   const [loading,       setLoading]       = useState(true);
@@ -310,7 +333,7 @@ export const useNotifications = () => {
     setLoading(true);
     try {
       const { data } = await notificationsApi.get();
-      setNotifications(data.notifications ?? data.data ?? data ?? []);
+      setNotifications(data.notifications ?? []);
       setTotal(data.total ?? 0);
     } catch { setNotifications([]); }
     finally { setLoading(false); }

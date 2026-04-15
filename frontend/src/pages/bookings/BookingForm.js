@@ -55,9 +55,6 @@ const BookingForm = ({ initial = {}, onSave, onCancel, saving }) => {
     setErrors((er) => ({ ...er, [field]: '' }));
   };
 
-  console.log('customers:', customers);
-  console.log('Form state:', form);
-
   const validate = () => {
     const e = {};
     if (!form.customerID) e.customerID = 'Lead customer is required';
@@ -95,293 +92,284 @@ const BookingForm = ({ initial = {}, onSave, onCancel, saving }) => {
   if (refLoading) return <Box sx={{ p: 4, textAlign: 'center' }}><CircularProgress /></Box>;
 
   return (
-    <Box>
-      <Grid container spacing={2.5}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 
-        {/* ── Lead customer ──────────────────────────────── */}
-        <Grid item xs={12}>
-          <Typography variant="h6" sx={{ color: KUKAT.navy, mb: 1 }}>Lead customer</Typography>
-        </Grid>
+      {/* ── Lead customer ─────────────────────────────── */}
+      <Typography variant="h6" sx={{ color: KUKAT.navy }}>Lead customer</Typography>
 
-        <Grid item xs={12} md={6}>
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+        gap: 2,
+      }}>
+        <Autocomplete
+          options={customers}
+          loading={custLoading}
+          getOptionLabel={(o) => `${o.firstName} ${o.lastName} — ${o.email || o.city || ''}`}
+          value={customers.find((c) => c.customerID === form.customerID) || null}
+          onInputChange={(_, v) => setCustQuery(v)}
+          onChange={(_, v) => {
+            setForm((f) => ({ ...f, customerID: v?.customerID || null }));
+            setErrors((e) => ({ ...e, customerID: '' }));
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Search customer *"
+              error={!!errors.customerID}
+              helperText={errors.customerID}
+              InputProps={{ ...params.InputProps,
+                endAdornment: <>{custLoading && <CircularProgress size={16} />}{params.InputProps.endAdornment}</>,
+              }}
+            />
+          )}
+        />
+
+        <TextField
+          select fullWidth label="Product *"
+          value={form.productID || ''}
+          onChange={set('productID')}
+          error={!!errors.productID}
+          helperText={errors.productID}
+        >
+          {products.map((p) => (
+            <MenuItem key={p.productID} value={p.productID}>{p.productName}</MenuItem>
+          ))}
+        </TextField>
+      </Box>
+
+      {/* ── Trip details ──────────────────────────────── */}
+      <Divider><Typography variant="caption">Trip details</Typography></Divider>
+
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' },
+        gap: 2,
+      }}>
+        <TextField
+          select fullWidth label="Destination"
+          value={form.destinationID} onChange={set('destinationID')}
+        >
+          <MenuItem value="">— None —</MenuItem>
+          {destinations.map((d) => (
+            <MenuItem key={d.destinationID} value={d.destinationID}>{d.destinationName}</MenuItem>
+          ))}
+        </TextField>
+
+        <TextField
+          select fullWidth label="Class"
+          value={form.classID} onChange={set('classID')}
+        >
+          <MenuItem value="">— None —</MenuItem>
+          {classTypes.map((c) => (
+            <MenuItem key={c.classID} value={c.classID}>{c.description}</MenuItem>
+          ))}
+        </TextField>
+
+        <TextField
+          select fullWidth label="Booking fee"
+          value={form.feeID} onChange={set('feeID')}
+        >
+          <MenuItem value="">— None —</MenuItem>
+          {fees.map((f) => (
+            <MenuItem key={f.feeID} value={f.feeID}>
+              {f.description} (${f.feeAmount})
+            </MenuItem>
+          ))}
+        </TextField>
+
+        <TextField fullWidth label="Booking date *" type="date"
+          value={form.bookingDate} onChange={set('bookingDate')}
+          error={!!errors.bookingDate} helperText={errors.bookingDate}
+          InputLabelProps={{ shrink: true }}
+        />
+
+        <TextField fullWidth label="Trip start" type="date"
+          value={form.tripStart} onChange={set('tripStart')}
+          InputLabelProps={{ shrink: true }}
+        />
+
+        <TextField fullWidth label="Trip end" type="date"
+          value={form.tripEnd} onChange={set('tripEnd')}
+          InputLabelProps={{ shrink: true }}
+        />
+      </Box>
+
+      {/* ── Travellers + Status ───────────────────────── */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+        gap: 2,
+      }}>
+        <TextField fullWidth label="Travellers" type="number"
+          value={form.numberOfTravellers} onChange={set('numberOfTravellers')}
+          inputProps={{ min: 1 }}
+        />
+
+        <TextField
+          select fullWidth label="Status"
+          value={form.status} onChange={set('status')}
+        >
+          {STATUSES.map((s) => (
+            <MenuItem key={s} value={s} sx={{ textTransform: 'capitalize' }}>{s}</MenuItem>
+          ))}
+        </TextField>
+      </Box>
+
+      {/* ── Pricing ───────────────────────────────────── */}
+      <Divider><Typography variant="caption">Pricing</Typography></Divider>
+
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' },
+        gap: 2,
+      }}>
+        <TextField fullWidth label="Base price *" type="number"
+          value={form.basePrice} onChange={set('basePrice')}
+          error={!!errors.basePrice} helperText={errors.basePrice}
+          InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
+        />
+
+        <TextField fullWidth label="Tax rate (%)" type="number"
+          value={form.taxRate} onChange={set('taxRate')}
+          InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
+        />
+
+        <TextField fullWidth label="Total (calculated)" value={`$${totalPrice}`}
+          disabled
+          sx={{ '& .MuiInputBase-input': { fontWeight: 600, color: KUKAT.navy } }}
+        />
+      </Box>
+
+      <TextField fullWidth label="Description" multiline rows={2}
+        value={form.description} onChange={set('description')}
+        placeholder="Optional notes about this booking…"
+      />
+
+      {/* ── Group booking ─────────────────────────────── */}
+      <Divider><Typography variant="caption">Group booking</Typography></Divider>
+
+      <FormControlLabel
+        control={
+          <Switch
+            checked={form.isGroupBooking}
+            onChange={(e) => setForm((f) => ({ ...f, isGroupBooking: e.target.checked }))}
+            color="primary"
+          />
+        }
+        label={
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Group sx={{ fontSize: 18, color: KUKAT.teal }} />
+            <Typography variant="body2" fontWeight={500}>This is a group booking</Typography>
+          </Box>
+        }
+      />
+
+      {form.isGroupBooking && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+            gap: 2,
+          }}>
+            <TextField fullWidth label="Group name *"
+              value={form.groupName} onChange={set('groupName')}
+              error={!!errors.groupName} helperText={errors.groupName}
+              placeholder="e.g. Smith Family, Acme Corp Trip"
+            />
+          </Box>
+
+          <Typography variant="body2" fontWeight={600} sx={{ color: KUKAT.navy }}>
+            Group members
+          </Typography>
+
           <Autocomplete
-            options={customers}
-            loading={custLoading}
-            getOptionLabel={(o) => `${o.firstName} ${o.lastName} — ${o.email || o.city || ''}`}
-            value={customers.find((c) => c.customerID === form.customerID) || null}
-            onInputChange={(_, v) => setCustQuery(v)}
-            onChange={(_, v) => {
-              setForm((f) => ({ ...f, customerID: v?.customerID || null }));
-              setErrors((e) => ({ ...e, customerID: '' }));
-            }}
+            options={memberOptions}
+            getOptionLabel={(o) => `${o.firstName} ${o.lastName} — ${o.email || o.city}`}
+            inputValue={memberQuery}
+            onInputChange={(_, v) => setMemberQuery(v)}
+            onChange={(_, v) => addMember(v)}
+            value={null}
             renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Search customer *"
-                error={!!errors.customerID}
-                helperText={errors.customerID}
-                InputProps={{ ...params.InputProps,
-                  endAdornment: <>{custLoading && <CircularProgress size={16} />}{params.InputProps.endAdornment}</>,
-                }}
-              />
+              <TextField {...params} label="Add member — search by name or email" size="small" />
             )}
           />
-        </Grid>
 
-        <Grid item xs={12} md={6}>
-          <TextField
-            select fullWidth label="Product *"
-            value={form.productID || ''}
-            onChange={set('productID')}
-            error={!!errors.productID}
-            helperText={errors.productID}
-          >
-            {products.map((p) => (
-              <MenuItem key={p.productID} value={p.productID}>
-                {p.productName}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
+          {members.length > 0 ? (
+            <Table size="small" sx={{ border: `1px solid ${KUKAT.border}`, borderRadius: 2, overflow: 'hidden' }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Role</TableCell>
+                  <TableCell>Share ($)</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell />
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {members.map((m) => (
+                  <TableRow key={m.customerID}>
+                    <TableCell>{m.firstName} {m.lastName}</TableCell>
+                    <TableCell>
+                      <Chip label={m.role} size="small"
+                        sx={{ textTransform: 'capitalize', fontSize: '0.7rem',
+                          backgroundColor: m.role === 'lead' ? '#FEF9C3' : '#F1F5F9',
+                          color: m.role === 'lead' ? '#854D0E' : '#475569',
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <TextField
+                        size="small" type="number"
+                        value={m.shareAmount}
+                        onChange={(e) => setMembers((ms) => ms.map((x) =>
+                          x.customerID === m.customerID
+                            ? { ...x, shareAmount: +e.target.value }
+                            : x
+                        ))}
+                        sx={{ width: 110 }}
+                        InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={m.shareStatus} size="small"
+                        sx={{ textTransform: 'capitalize', fontSize: '0.7rem' }} />
+                    </TableCell>
+                    <TableCell>
+                      <IconButton size="small" onClick={() => removeMember(m.customerID)}
+                        sx={{ color: '#EF4444' }}>
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <Alert severity="info">
+              Search and add group members above. The lead customer is already included.
+            </Alert>
+          )}
+        </Box>
+      )}
 
-        {/* ── Trip details ───────────────────────────────── */}
-        <Grid item xs={12}><Divider><Typography variant="caption">Trip details</Typography></Divider></Grid>
-
-        <Grid item xs={12} md={4}>
-          <TextField
-            select fullWidth label="Destination"
-            value={form.destinationID} onChange={set('destinationID')}
-          >
-            <MenuItem value="">— None —</MenuItem>
-            {destinations.map((d) => (
-              <MenuItem key={d.destinationID} value={d.destinationID}>{d.destinationName}</MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <TextField
-            select fullWidth label="Class"
-            value={form.classID} onChange={set('classID')}
-          >
-            <MenuItem value="">— None —</MenuItem>
-            {classTypes.map((c) => (
-              <MenuItem key={c.classID} value={c.classID}>{c.description}</MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <TextField
-            select fullWidth label="Booking fee"
-            value={form.feeID} onChange={set('feeID')}
-          >
-            <MenuItem value="">— None —</MenuItem>
-            {fees.map((f) => (
-              <MenuItem key={f.feeID} value={f.feeID}>
-                {f.description} (${f.feeAmount})
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <TextField fullWidth label="Booking date *" type="date"
-            value={form.bookingDate} onChange={set('bookingDate')}
-            error={!!errors.bookingDate} helperText={errors.bookingDate}
-            InputLabelProps={{ shrink: true }}
-          />
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <TextField fullWidth label="Trip start" type="date"
-            value={form.tripStart} onChange={set('tripStart')}
-            InputLabelProps={{ shrink: true }}
-          />
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <TextField fullWidth label="Trip end" type="date"
-            value={form.tripEnd} onChange={set('tripEnd')}
-            InputLabelProps={{ shrink: true }}
-          />
-        </Grid>
-
-        <Grid item xs={12} md={3}>
-          <TextField fullWidth label="Travellers" type="number"
-            value={form.numberOfTravellers} onChange={set('numberOfTravellers')}
-            inputProps={{ min: 1 }}
-          />
-        </Grid>
-
-        <Grid item xs={12} md={3}>
-          <TextField
-            select fullWidth label="Status"
-            value={form.status} onChange={set('status')}
-          >
-            {STATUSES.map((s) => <MenuItem key={s} value={s} sx={{ textTransform: 'capitalize' }}>{s}</MenuItem>)}
-          </TextField>
-        </Grid>
-
-        {/* ── Pricing ─────────────────────────────────────── */}
-        <Grid item xs={12}><Divider><Typography variant="caption">Pricing</Typography></Divider></Grid>
-
-        <Grid item xs={12} md={4}>
-          <TextField fullWidth label="Base price *" type="number"
-            value={form.basePrice} onChange={set('basePrice')}
-            error={!!errors.basePrice} helperText={errors.basePrice}
-            InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
-          />
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <TextField fullWidth label="Tax rate (%)" type="number"
-            value={form.taxRate} onChange={set('taxRate')}
-            InputProps={{ endAdornment: <InputAdornment position="end">%</InputAdornment> }}
-          />
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <TextField fullWidth label="Total (calculated)" value={`$${totalPrice}`}
-            disabled
-            sx={{ '& .MuiInputBase-input': { fontWeight: 600, color: KUKAT.navy } }}
-          />
-        </Grid>
-
-        <Grid item xs={12}>
-          <TextField fullWidth label="Description" multiline rows={2}
-            value={form.description} onChange={set('description')}
-            placeholder="Optional notes about this booking…"
-          />
-        </Grid>
-
-        {/* ── Group booking ────────────────────────────────── */}
-        <Grid item xs={12}>
-          <Divider><Typography variant="caption">Group booking</Typography></Divider>
-        </Grid>
-
-        <Grid item xs={12}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={form.isGroupBooking}
-                onChange={(e) => setForm((f) => ({ ...f, isGroupBooking: e.target.checked }))}
-                color="primary"
-              />
-            }
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Group sx={{ fontSize: 18, color: KUKAT.teal }} />
-                <Typography variant="body2" fontWeight={500}>This is a group booking</Typography>
-              </Box>
-            }
-          />
-        </Grid>
-
-        {form.isGroupBooking && (
-          <>
-            <Grid item xs={12} md={6}>
-              <TextField fullWidth label="Group name *"
-                value={form.groupName} onChange={set('groupName')}
-                error={!!errors.groupName} helperText={errors.groupName}
-                placeholder="e.g. Smith Family, Acme Corp Trip"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Typography variant="body2" fontWeight={600} sx={{ mb: 1, color: KUKAT.navy }}>
-                Group members
-              </Typography>
-
-              {/* Member search */}
-              <Autocomplete
-                options={memberOptions}
-                getOptionLabel={(o) => `${o.firstName} ${o.lastName} — ${o.email || o.city}`}
-                inputValue={memberQuery}
-                onInputChange={(_, v) => setMemberQuery(v)}
-                onChange={(_, v) => addMember(v)}
-                value={null}
-                renderInput={(params) => (
-                  <TextField {...params} label="Add member — search by name or email"
-                    size="small" sx={{ mb: 1.5 }}
-                  />
-                )}
-              />
-
-              {/* Members table */}
-              {members.length > 0 && (
-                <Table size="small" sx={{ border: `1px solid ${KUKAT.border}`, borderRadius: 2, overflow: 'hidden' }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Name</TableCell>
-                      <TableCell>Role</TableCell>
-                      <TableCell>Share ($)</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell />
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {members.map((m) => (
-                      <TableRow key={m.customerID}>
-                        <TableCell>{m.firstName} {m.lastName}</TableCell>
-                        <TableCell>
-                          <Chip label={m.role} size="small"
-                            sx={{ textTransform: 'capitalize', fontSize: '0.7rem',
-                              backgroundColor: m.role === 'lead' ? '#FEF9C3' : '#F1F5F9',
-                              color: m.role === 'lead' ? '#854D0E' : '#475569',
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <TextField
-                            size="small" type="number"
-                            value={m.shareAmount}
-                            onChange={(e) => setMembers((ms) => ms.map((x) =>
-                              x.customerID === m.customerID
-                                ? { ...x, shareAmount: +e.target.value }
-                                : x
-                            ))}
-                            sx={{ width: 110 }}
-                            InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={m.shareStatus} size="small"
-                            sx={{ textTransform: 'capitalize', fontSize: '0.7rem' }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <IconButton size="small" onClick={() => removeMember(m.customerID)}
-                            sx={{ color: '#EF4444' }}>
-                            <Delete fontSize="small" />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-
-              {members.length === 0 && (
-                <Alert severity="info" sx={{ mt: 1 }}>
-                  Search and add group members above. The lead customer is already included.
-                </Alert>
-              )}
-            </Grid>
-          </>
-        )}
-      </Grid>
-
-      {/* ── Actions ─────────────────────────────────────────── */}
-      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 4, pt: 3, borderTop: `1px solid ${KUKAT.border}` }}>
+      {/* ── Actions ───────────────────────────────────── */}
+      <Box sx={{
+        display: 'flex', gap: 2, justifyContent: 'flex-end',
+        mt: 2, pt: 3, borderTop: `1px solid ${KUKAT.border}`,
+      }}>
         <Button variant="outlined" onClick={onCancel} disabled={saving}>
           Cancel
         </Button>
         <Button variant="contained" onClick={handleSubmit} disabled={saving}
           sx={{ minWidth: 140 }}>
-          {saving ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : initial.bookingID ? 'Save changes' : 'Create booking'}
+          {saving
+            ? <CircularProgress size={20} sx={{ color: '#fff' }} />
+            : initial.bookingID ? 'Save changes' : 'Create booking'}
         </Button>
       </Box>
+
     </Box>
   );
 }

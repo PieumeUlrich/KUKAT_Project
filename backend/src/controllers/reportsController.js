@@ -1,62 +1,63 @@
 import { query, sql } from '../config/db.js';
 
-// Helper — date range from period string
+// ── Date range helper ─────────────────────────────────────────
 const dateRange = (period) => {
   const now   = new Date();
   const year  = now.getFullYear();
   const month = now.getMonth();
 
   switch (period) {
-    case 'month':
-      return {
-        start: new Date(year, month, 1),
-        end:   new Date(year, month + 1, 0),
-      };
-    case 'quarter': {
-      const q = Math.floor(month / 3);
-      return {
-        start: new Date(year, q * 3, 1),
-        end:   new Date(year, q * 3 + 3, 0),
-      };
+    case 'month': {
+      // Last 30 days
+      const start = new Date(now); start.setDate(start.getDate() - 30);
+      return { start, end: now };
     }
-    case 'year':
-      return { start: new Date(year, 0, 1), end: new Date(year, 11, 31) };
+    case 'quarter': {
+      // Last 90 days
+      const start = new Date(now); start.setDate(start.getDate() - 90);
+      return { start, end: now };
+    }
+    case 'year': {
+      // Last 12 months
+      const start = new Date(now); start.setFullYear(start.getFullYear() - 1);
+      return { start, end: now };
+    }
     default:
+      // All time
       return { start: new Date('2000-01-01'), end: new Date('2099-12-31') };
   }
-}
+};
+
+const dateParams = (period) => {
+  const { start, end } = dateRange(period);
+  return {
+    start: { type: sql.Date, value: start },
+    end:   { type: sql.Date, value: end   },
+  };
+};
 
 // GET /api/reports/revenue
 const getRevenueSummary = async (req, res, next) => {
   try {
-    const { start, end } = dateRange(req.query.period);
-    const params = {
-      start: { type: sql.Date, value: start },
-      end:   { type: sql.Date, value: end   },
-    };
-
+    const params = dateParams(req.query.period);
     const result = await query(
       `SELECT
-         COUNT(DISTINCT i.invoiceID)                                AS totalInvoices,
-         ISNULL(SUM(CASE WHEN i.status = 'paid' THEN i.totalAmount ELSE 0 END), 0) AS total,
-         ISNULL(AVG(b.basePrice), 0)                               AS avgBooking,
-         ISNULL(SUM(CASE WHEN i.status = 'unpaid' THEN i.totalAmount ELSE 0 END), 0) AS outstanding
-       FROM   invoices i
-       JOIN   bookings b ON b.bookingID = i.bookingID
-       WHERE  i.invoiceDate BETWEEN @start AND @end`, params
+         COUNT(DISTINCT i.invoiceID)                                                   AS totalInvoices,
+         ISNULL(SUM(CASE WHEN i.status = 'paid'    THEN i.totalAmount ELSE 0 END), 0) AS total,
+         ISNULL(SUM(CASE WHEN i.status = 'unpaid'  THEN i.totalAmount ELSE 0 END), 0) AS outstanding,
+         ISNULL(AVG(b.basePrice), 0)                                                   AS avgBooking
+       FROM invoices i
+       JOIN bookings b ON b.bookingID = i.bookingID
+       WHERE i.invoiceDate BETWEEN @start AND @end`, params
     );
     res.json(result.recordset[0]);
   } catch (err) { next(err); }
-}
+};
 
 // GET /api/reports/bookings
 const getBookingStats = async (req, res, next) => {
   try {
-    const { start, end } = dateRange(req.query.period);
-    const params = {
-      start: { type: sql.Date, value: start },
-      end:   { type: sql.Date, value: end   },
-    };
+    const params = dateParams(req.query.period);
 
     const [bookResult, commResult] = await Promise.all([
       query(
@@ -89,47 +90,37 @@ const getBookingStats = async (req, res, next) => {
 // GET /api/reports/agents
 const getAgentPerformance = async (req, res, next) => {
   try {
-    const { start, end } = dateRange(req.query.period);
-    const params = {
-      start: { type: sql.Date, value: start },
-      end:   { type: sql.Date, value: end   },
-    };
-
+    const params = dateParams(req.query.period);
     const result = await query(
       `SELECT
          e.employeeID, e.firstName, e.lastName, e.agentCode,
-         COUNT(DISTINCT b.bookingID)                                   AS bookingCount,
-         ISNULL(SUM(b.basePrice), 0)                                   AS revenue,
-         ISNULL(SUM(c.commissionAmount), 0)                            AS commission
+         COUNT(DISTINCT b.bookingID)      AS bookingCount,
+         ISNULL(SUM(b.basePrice), 0)      AS revenue,
+         ISNULL(SUM(c.commissionAmount), 0) AS commission
        FROM   employees e
-       JOIN   roles     r ON r.roleID    = e.roleID AND r.roleName = 'agent'
-       LEFT   JOIN bookings    b ON b.employeeID   = e.employeeID
-                                AND b.bookingDate BETWEEN @start AND @end
-                                AND b.status != 'cancelled'
-       LEFT   JOIN commissions c ON c.employeeID   = e.employeeID
-                                AND c.createdAt   BETWEEN @start AND @end
+       JOIN   roles r ON r.roleID = e.roleID AND r.roleName = 'agent'
+       LEFT   JOIN bookings    b ON b.employeeID = e.employeeID
+                               AND b.bookingDate BETWEEN @start AND @end
+                               AND b.status != 'cancelled'
+       LEFT   JOIN commissions c ON c.employeeID = e.employeeID
+                               AND c.createdAt   BETWEEN @start AND @end
        WHERE  e.isActive = 1
        GROUP  BY e.employeeID, e.firstName, e.lastName, e.agentCode
        ORDER  BY bookingCount DESC`, params
     );
     res.json(result.recordset);
   } catch (err) { next(err); }
-}
+};
 
 // GET /api/reports/top-destinations
 const getTopDestinations = async (req, res, next) => {
   try {
-    const { start, end } = dateRange(req.query.period);
-    const params = {
-      start: { type: sql.Date, value: start },
-      end:   { type: sql.Date, value: end   },
-    };
-
+    const params = dateParams(req.query.period);
     const result = await query(
       `SELECT TOP 10
          d.destinationID, d.destinationName, d.region,
-         COUNT(b.bookingID)        AS bookingCount,
-         ISNULL(SUM(b.basePrice), 0) AS totalRevenue
+         COUNT(b.bookingID)           AS bookingCount,
+         ISNULL(SUM(b.basePrice), 0)  AS totalRevenue
        FROM   destinations d
        JOIN   bookings     b ON b.destinationID = d.destinationID
                             AND b.bookingDate BETWEEN @start AND @end
@@ -139,12 +130,54 @@ const getTopDestinations = async (req, res, next) => {
     );
     res.json(result.recordset);
   } catch (err) { next(err); }
-}
+};
 
 // GET /api/reports/commissions
 const getCommissionReport = async (req, res, next) => {
   try {
-    const { start, end } = dateRange(req.query.period);
+    const params = dateParams(req.query.period);
+    const result = await query(
+      `SELECT
+         ISNULL(SUM(CASE WHEN status = 'paid'     THEN commissionAmount ELSE 0 END), 0) AS paid,
+         ISNULL(SUM(CASE WHEN status = 'pending'  THEN commissionAmount ELSE 0 END), 0) AS pending,
+         COUNT(CASE WHEN status = 'pending' THEN 1 END)                                  AS pendingCount,
+         COUNT(*)                                                                         AS total
+       FROM commissions
+       WHERE createdAt BETWEEN @start AND @end`, params
+    );
+    res.json(result.recordset[0]);
+  } catch (err) { next(err); }
+};
+
+// GET /api/reports/top-products
+const getTopProducts = async (req, res, next) => {
+  try {
+    const params = dateParams(req.query.period);
+    const result = await query(
+      `SELECT TOP 10
+         p.productID, p.productName, s.supplierName,
+         COUNT(b.bookingID)          AS bookingCount,
+         ISNULL(SUM(b.basePrice), 0) AS revenue
+       FROM   products  p
+       JOIN   suppliers s ON s.supplierID = p.supplierID
+       JOIN   bookings  b ON b.productID  = p.productID
+                         AND b.bookingDate BETWEEN @start AND @end
+                         AND b.status != 'cancelled'
+       GROUP  BY p.productID, p.productName, s.supplierName
+       ORDER  BY bookingCount DESC`, params
+    );
+    res.json(result.recordset);
+  } catch (err) { next(err); }
+};
+
+
+
+// GET /api/reports/revenue-trend
+// Returns monthly revenue/bookings breakdown for charts
+const getRevenueTrend = async (req, res, next) => {
+  try {
+    const { period = 'year' } = req.query;
+    const { start, end } = dateRange(period);
     const params = {
       start: { type: sql.Date, value: start },
       end:   { type: sql.Date, value: end   },
@@ -152,19 +185,24 @@ const getCommissionReport = async (req, res, next) => {
 
     const result = await query(
       `SELECT
-         SUM(CASE WHEN status = 'paid'    THEN commissionAmount ELSE 0 END) AS paid,
-         SUM(CASE WHEN status = 'pending' THEN commissionAmount ELSE 0 END) AS pending,
-         COUNT(CASE WHEN status = 'pending' THEN 1 END)                     AS pendingCount,
-         COUNT(*)                                                            AS total
-       FROM   commissions
-       WHERE  createdAt BETWEEN @start AND @end`, params
+         YEAR(b.bookingDate)                                                  AS year,
+         MONTH(b.bookingDate)                                                 AS month,
+         DATENAME(MONTH, b.bookingDate) + ' ' + CAST(YEAR(b.bookingDate) AS VARCHAR) AS label,
+         COUNT(*)                                                             AS bookings,
+         ISNULL(SUM(CASE WHEN b.status != 'cancelled' THEN b.basePrice ELSE 0 END), 0) AS revenue,
+         ISNULL(SUM(CASE WHEN i.status = 'paid' THEN i.totalAmount ELSE 0 END), 0)     AS collected
+       FROM   bookings b
+       LEFT   JOIN invoices i ON i.bookingID = b.bookingID
+       WHERE  b.bookingDate BETWEEN @start AND @end
+       GROUP  BY YEAR(b.bookingDate), MONTH(b.bookingDate),
+                 DATENAME(MONTH, b.bookingDate) + ' ' + CAST(YEAR(b.bookingDate) AS VARCHAR)
+       ORDER  BY year, month`, params
     );
-
-    res.json(result.recordset[0]);
+    res.json(result.recordset);
   } catch (err) { next(err); }
-}
+};
 
 export {
   getRevenueSummary, getBookingStats, getAgentPerformance,
-  getTopDestinations, getCommissionReport,
+  getTopDestinations, getCommissionReport, getTopProducts, getRevenueTrend,
 };

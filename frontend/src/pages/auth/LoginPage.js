@@ -100,10 +100,8 @@ export default function LoginPage() {
           }}>
             <FlightIcon sx={{ color: KUKAT.navy, fontSize: 22, transform: 'rotate(45deg)' }} />
           </Box>
-          <Typography sx={{
-            color: '#fff', fontFamily: '"Playfair Display", serif',
-            fontWeight: 700, fontSize: '1.6rem', letterSpacing: '-0.01em',
-          }}>
+          <Typography sx={{ color: 'rgba(245, 233, 183, 0.61)',
+            fontSize: '1.9rem', fontWeight: 800, mt: 1.5, mb: 1.5, lineHeight: 1.3 }}>
             KUKAT
           </Typography>
         </Box>
@@ -111,15 +109,14 @@ export default function LoginPage() {
         {/* Headline */}
         <Box sx={{ zIndex: 1 }}>
           <Typography sx={{
-            fontFamily: '"Playfair Display", serif',
-            color: '#fff', fontWeight: 700,
-            fontSize: 'clamp(1.8rem, 3vw, 2.6rem)',
-            lineHeight: 1.2, mb: 2,
+            color: '#fff', fontWeight: 500,
+            fontSize: 'clamp(1.9rem, 5vw, 2.9rem)',
+            lineHeight: 1.4, mb: 2,
           }}>
             Your agency,<br />
             <Box component="span" sx={{ color: KUKAT.amberLight }}>fully in control.</Box>
           </Typography>
-          <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.95rem', lineHeight: 1.7, maxWidth: 380 }}>
+          <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: '1rem', lineHeight: 1.7, maxWidth: 380 }}>
             Manage bookings, customers, commissions and your entire team from a single, powerful platform.
           </Typography>
 
@@ -169,7 +166,6 @@ export default function LoginPage() {
             <FlightIcon sx={{ color: KUKAT.navy, fontSize: 20, transform: 'rotate(45deg)' }} />
           </Box>
           <Typography sx={{
-            fontFamily: '"Playfair Display", serif',
             fontWeight: 700, fontSize: '1.4rem', color: KUKAT.navy,
           }}>
             KUKAT
@@ -177,13 +173,12 @@ export default function LoginPage() {
         </Box>
 
         <Box sx={{ width: '100%', maxWidth: 420 }}>
-          <Typography variant="h3" sx={{
-            fontFamily: '"Playfair Display", serif',
+          <Typography variant="h3" sx={{ textAlign: 'center', fontWeight: 700,
             color: KUKAT.navy, mb: 0.5,
           }}>
             Welcome back
           </Typography>
-          <Typography variant="body2" sx={{ color: KUKAT.textMuted, mb: 4 }}>
+          <Typography variant="body2" sx={{ color: KUKAT.textMuted, mb: 4, textAlign: 'center'}}>
             Sign in to your KUKAT workspace
           </Typography>
 
@@ -207,7 +202,7 @@ export default function LoginPage() {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <EmailIcon sx={{ fontSize: 18, color: KUKAT.textMuted }} />
+                    <EmailIcon sx={{ fontSize: 22, color: KUKAT.textMuted }} />
                   </InputAdornment>
                 ),
               }}
@@ -225,15 +220,15 @@ export default function LoginPage() {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <LockIcon sx={{ fontSize: 18, color: KUKAT.textMuted }} />
+                    <LockIcon sx={{ fontSize: 22, color: KUKAT.textMuted }} />
                   </InputAdornment>
                 ),
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton onClick={() => setShowPass(!showPass)} edge="end" size="small">
                       {showPass
-                        ? <VisibilityOff sx={{ fontSize: 18 }} />
-                        : <Visibility  sx={{ fontSize: 18 }} />}
+                        ? <VisibilityOff sx={{ fontSize: 22 }} />
+                        : <Visibility  sx={{ fontSize: 22 }} />}
                     </IconButton>
                   </InputAdornment>
                 ),
@@ -265,7 +260,7 @@ export default function LoginPage() {
 
           <Typography variant="caption" sx={{
             display: 'block', textAlign: 'center', mt: 4,
-            color: KUKAT.textMuted,
+            color: KUKAT.textMuted, fontSize: '0.85rem',
           }}>
             Having trouble signing in? Contact your system administrator.
           </Typography>

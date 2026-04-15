@@ -33,7 +33,6 @@ const getPool = async () => {
   if (pool) return pool;
   pool = await sql.connect(config);
   pool.on('error', (err) => {
-    console.error('SQL Pool error:', err);
     pool = null;
   });
   return pool;

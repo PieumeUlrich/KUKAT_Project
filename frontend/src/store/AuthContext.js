@@ -30,15 +30,18 @@ export function AuthProvider({ children }) {
   const clearAuth = () => {
     localStorage.removeItem('kukat_token');
     localStorage.removeItem('kukat_user');
+    localStorage.removeItem('kukat_refresh');
     setUser(null);
   };
 
   const login = useCallback(async (email, password) => {
-    const { data } = await authApi.login(email, password);
-    localStorage.setItem('kukat_token', data.token);
-    localStorage.setItem('kukat_user',  JSON.stringify(data.user));
-    setUser(data.user);
-    return data.user;
+    const response = await authApi.login(email, password);
+    const userData = response.data ?? response;
+    localStorage.setItem('kukat_token', userData.token);
+    localStorage.setItem('kukat_refresh', userData.refreshToken);
+    localStorage.setItem('kukat_user', JSON.stringify(userData.user));
+    setUser(userData.user);
+    return userData.user;
   }, []);
 
   const logout = useCallback(async () => {

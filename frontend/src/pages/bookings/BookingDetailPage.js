@@ -93,13 +93,27 @@ export default function BookingDetailPage() {
       title={`Booking #${b.bookingID}`}
       subtitle={b.productName || ''}
     >
-{/* ── Back + actions ─────────────────────────────────── */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+      {/* ── Back + actions ─────────────────────────────────── */}
+      <Box sx={{
+        display: 'flex',
+        flexDirection: { xs: 'column', sm: 'row' },
+        alignItems: { xs: 'stretch', sm: 'center' },
+        justifyContent: 'space-between',
+        gap: 1.5,
+        mb: 3,
+      }}>
         <Button startIcon={<ArrowBack />} onClick={() => navigate('/bookings')}
-          variant="outlined" size="small">
+          variant="outlined" size="small"
+          sx={{ alignSelf: { xs: 'flex-start', sm: 'auto' } }}>
           Back to bookings
         </Button>
-        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+
+        <Box sx={{
+          display: 'flex',
+          gap: 1,
+          flexWrap: 'wrap',
+          justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+        }}>
           {b.invoiceID && (
             <Button startIcon={<Receipt />} variant="outlined" size="small"
               onClick={() => navigate(`/invoices/${b.invoiceID}`)}>
@@ -135,14 +149,20 @@ export default function BookingDetailPage() {
             Edit booking
           </Button>
         </Box>
-      </Box>
-      
+      </Box>      
       {saveErr && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSaveErr('')}>{saveErr}</Alert>}
 
-      <Grid container spacing={2.5}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 
-        {/* ── Booking overview card ─────────────────────────── */}
-        <Grid item xs={12} md={8}>
+        {/* ── Main 2-column layout ─────────────────────────────── */}
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' },
+          gap: 2.5,
+          alignItems: 'start',
+        }}>
+
+          {/* Booking overview card */}
           <Card>
             <CardHeader
               title={
@@ -168,7 +188,8 @@ export default function BookingDetailPage() {
                       <Chip icon={<Group sx={{ fontSize: '14px !important' }} />}
                         label={b.groupName || 'Group'}
                         size="small"
-                        sx={{ ml: 1, background: '#CCFBF1', color: '#0F766E', fontWeight: 600, fontSize: '0.72rem' }}
+                        sx={{ ml: 1, background: '#CCFBF1', color: '#0F766E',
+                          fontWeight: 600, fontSize: '0.72rem' }}
                       />
                     )}
                   </Box>
@@ -183,132 +204,138 @@ export default function BookingDetailPage() {
                 value={b.tripStart ? new Date(b.tripStart).toLocaleDateString('en-CA') : null} />
               <InfoRow label="Trip end"
                 value={b.tripEnd ? new Date(b.tripEnd).toLocaleDateString('en-CA') : null} />
-              <InfoRow label="Class"          value={b.classDescription} />
-              <InfoRow label="Travellers"     value={b.numberOfTravellers} />
-              <InfoRow label="Description"    value={b.description} />
+              <InfoRow label="Class"       value={b.classDescription} />
+              <InfoRow label="Travellers"  value={b.numberOfTravellers} />
+              <InfoRow label="Description" value={b.description} />
               {b.feeName && (
                 <InfoRow label="Booking fee" value={`${b.feeName} — $${b.feeAmount}`} />
               )}
             </CardContent>
           </Card>
-        </Grid>
 
-        {/* ── Sidebar cards ─────────────────────────────────── */}
-        <Grid item xs={12} md={4}>
+          {/* Sidebar — 3 stacked cards */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 
-          {/* Customer card */}
-          <Card sx={{ mb: 2 }}>
-            <CardHeader
-              avatar={<Person sx={{ color: KUKAT.teal }} />}
-              title="Lead customer"
-              titleTypographyProps={{ variant: 'h6', sx: { fontSize: '0.95rem', color: KUKAT.navy } }}
-            />
-            <CardContent sx={{ pt: 0 }}>
-              <Typography fontWeight={600} sx={{ color: KUKAT.navy }}>
-                {b.customerFirstName} {b.customerLastName}
-              </Typography>
-              <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>{b.customerEmail}</Typography>
-              <Button size="small" variant="text"
-                onClick={() => navigate(`/customers/${b.customerID}`)}
-                sx={{ mt: 1, px: 0 }}>
-                View profile →
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Pricing card */}
-          <Card sx={{ mb: 2 }}>
-            <CardHeader
-              avatar={<AttachMoney sx={{ color: KUKAT.amber }} />}
-              title="Pricing"
-              titleTypographyProps={{ variant: 'h6', sx: { fontSize: '0.95rem', color: KUKAT.navy } }}
-            />
-            <CardContent sx={{ pt: 0 }}>
-              <InfoRow label="Base price"
-                value={b.basePrice ? `$${parseFloat(b.basePrice).toLocaleString('en-CA', { minimumFractionDigits: 2 })}` : null} />
-              <InfoRow label="Tax rate"     value={`${b.taxRate || 5}%`} />
-              <Divider sx={{ my: 1 }} />
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography fontWeight={700} sx={{ color: KUKAT.navy }}>Total</Typography>
-                <Typography fontWeight={700} sx={{ color: KUKAT.navy }}>
-                  {totalPrice ? `$${parseFloat(totalPrice).toLocaleString('en-CA', { minimumFractionDigits: 2 })}` : '—'}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-
-          {/* Agent card */}
-          <Card>
-            <CardHeader
-              avatar={<Person sx={{ color: KUKAT.navy }} />}
-              title="Assigned agent"
-              titleTypographyProps={{ variant: 'h6', sx: { fontSize: '0.95rem', color: KUKAT.navy } }}
-            />
-            <CardContent sx={{ pt: 0 }}>
-              <Typography fontWeight={600} sx={{ color: KUKAT.navy }}>
-                {b.agentFirstName} {b.agentLastName}
-              </Typography>
-              <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>
-                {b.agentCode && `Code: ${b.agentCode}`}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* ── Group members ─────────────────────────────────── */}
-        {b.isGroupBooking && b.members?.length > 0 && (
-          <Grid item xs={12}>
+            {/* Customer card */}
             <Card>
               <CardHeader
-                avatar={<Group sx={{ color: KUKAT.teal }} />}
-                title={`Group members — ${b.groupName}`}
-                titleTypographyProps={{ variant: 'h6', sx: { color: KUKAT.navy } }}
+                avatar={<Person sx={{ color: KUKAT.teal }} />}
+                title="Lead customer"
+                titleTypographyProps={{ variant: 'h6', sx: { fontSize: '0.95rem', color: KUKAT.navy } }}
               />
               <CardContent sx={{ pt: 0 }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Name</TableCell>
-                      <TableCell>Email</TableCell>
-                      <TableCell>Role</TableCell>
-                      <TableCell align="right">Share</TableCell>
-                      <TableCell align="right">Paid</TableCell>
-                      <TableCell>Status</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {b.members.map((m) => (
-                      <TableRow key={m.customerID}>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight={600}>
-                            {m.firstName} {m.lastName}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>{m.email || '—'}</TableCell>
-                        <TableCell>
-                          <Chip label={m.role} size="small"
-                            sx={{ textTransform: 'capitalize', fontSize: '0.7rem',
-                              backgroundColor: m.role === 'lead' ? '#FEF9C3' : '#F1F5F9',
-                              color: m.role === 'lead' ? '#854D0E' : '#475569',
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell align="right">
-                          ${parseFloat(m.shareAmount || 0).toFixed(2)}
-                        </TableCell>
-                        <TableCell align="right">
-                          ${parseFloat(m.sharePaid || 0).toFixed(2)}
-                        </TableCell>
-                        <TableCell><StatusChip status={m.shareStatus} /></TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <Typography fontWeight={600} sx={{ color: KUKAT.navy }}>
+                  {b.customerFirstName} {b.customerLastName}
+                </Typography>
+                <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>
+                  {b.customerEmail}
+                </Typography>
+                <Button size="small" variant="text"
+                  onClick={() => navigate(`/customers/${b.customerID}`)}
+                  sx={{ mt: 1, px: 0 }}>
+                  View profile →
+                </Button>
               </CardContent>
             </Card>
-          </Grid>
+
+            {/* Pricing card */}
+            <Card>
+              <CardHeader
+                avatar={<AttachMoney sx={{ color: KUKAT.amber }} />}
+                title="Pricing"
+                titleTypographyProps={{ variant: 'h6', sx: { fontSize: '0.95rem', color: KUKAT.navy } }}
+              />
+              <CardContent sx={{ pt: 0 }}>
+                <InfoRow label="Base price"
+                  value={b.basePrice
+                    ? `$${parseFloat(b.basePrice).toLocaleString('en-CA', { minimumFractionDigits: 2 })}`
+                    : null} />
+                <InfoRow label="Tax rate" value={`${b.taxRate || 5}%`} />
+                <Divider sx={{ my: 1 }} />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography fontWeight={700} sx={{ color: KUKAT.navy }}>Total</Typography>
+                  <Typography fontWeight={700} sx={{ color: KUKAT.navy }}>
+                    {totalPrice
+                      ? `$${parseFloat(totalPrice).toLocaleString('en-CA', { minimumFractionDigits: 2 })}`
+                      : '—'}
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+
+            {/* Agent card */}
+            <Card>
+              <CardHeader
+                avatar={<Person sx={{ color: KUKAT.navy }} />}
+                title="Assigned agent"
+                titleTypographyProps={{ variant: 'h6', sx: { fontSize: '0.95rem', color: KUKAT.navy } }}
+              />
+              <CardContent sx={{ pt: 0 }}>
+                <Typography fontWeight={600} sx={{ color: KUKAT.navy }}>
+                  {b.agentFirstName} {b.agentLastName}
+                </Typography>
+                <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>
+                  {b.agentCode && `Code: ${b.agentCode}`}
+                </Typography>
+              </CardContent>
+            </Card>
+
+          </Box>
+        </Box>
+
+        {/* ── Group members — full width below ─────────────────── */}
+        {b.isGroupBooking && b.members?.length > 0 && (
+          <Card>
+            <CardHeader
+              avatar={<Group sx={{ color: KUKAT.teal }} />}
+              title={`Group members — ${b.groupName}`}
+              titleTypographyProps={{ variant: 'h6', sx: { color: KUKAT.navy } }}
+            />
+            <CardContent sx={{ pt: 0 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Email</TableCell>
+                    <TableCell>Role</TableCell>
+                    <TableCell align="right">Share</TableCell>
+                    <TableCell align="right">Paid</TableCell>
+                    <TableCell>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {b.members.map((m) => (
+                    <TableRow key={m.customerID}>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={600}>
+                          {m.firstName} {m.lastName}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>{m.email || '—'}</TableCell>
+                      <TableCell>
+                        <Chip label={m.role} size="small"
+                          sx={{ textTransform: 'capitalize', fontSize: '0.7rem',
+                            backgroundColor: m.role === 'lead' ? '#FEF9C3' : '#F1F5F9',
+                            color: m.role === 'lead' ? '#854D0E' : '#475569',
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        ${parseFloat(m.shareAmount || 0).toFixed(2)}
+                      </TableCell>
+                      <TableCell align="right">
+                        ${parseFloat(m.sharePaid || 0).toFixed(2)}
+                      </TableCell>
+                      <TableCell><StatusChip status={m.shareStatus} /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         )}
-      </Grid>
+
+      </Box>
 
       {/* ── Edit drawer ──────────────────────────────────────── */}
       <Drawer

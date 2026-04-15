@@ -101,39 +101,58 @@ export default function CommissionsPage() {
   return (
     <AppLayout title="Commissions" subtitle={`${total} commission record${total !== 1 ? 's' : ''}`}>
 
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={6} sm={3}><StatCard label="Total commissions" value={total}
-          icon={<AccountBalance />} color={KUKAT.navy} loading={loading} /></Grid>
-        <Grid item xs={6} sm={3}><StatCard label="Total paid out"
+      {/* ── Stat cards ───────────────────────────────────────── */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
+        gap: 2,
+        mb: 3,
+      }}>
+        <StatCard label="Total commissions" value={total}
+          icon={<AccountBalance />} color={KUKAT.navy} loading={loading} />
+        <StatCard label="Total paid out"
           value={totalEarned.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
-          icon={<CheckCircle />} color="#15803D" loading={loading} prefix="$" /></Grid>
-        <Grid item xs={6} sm={3}><StatCard label="Awaiting approval" value={totalPending}
-          icon={<HourglassEmpty />} color={KUKAT.amber} loading={loading} /></Grid>
-        <Grid item xs={6} sm={3}><StatCard label="Bonus payments" value={bonusCount}
-          icon={<Star />} color="#7C3AED" loading={loading} /></Grid>
-      </Grid>
+          icon={<CheckCircle />} color="#15803D" loading={loading} prefix="$" />
+        <StatCard label="Awaiting approval" value={totalPending}
+          icon={<HourglassEmpty />} color={KUKAT.amber} loading={loading} />
+        <StatCard label="Bonus payments" value={bonusCount}
+          icon={<Star />} color="#7C3AED" loading={loading} />
+      </Box>
 
-      <Box sx={{ display: 'flex', gap: 2, mb: 2.5, flexWrap: 'wrap', alignItems: 'center' }}>
+      {/* ── Search + filters ─────────────────────────────────── */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: '1fr auto' },
+        gap: 1.5,
+        alignItems: 'center',
+        mb: 2.5,
+      }}>
         <TextField placeholder="Search agent, booking…" size="small" value={search}
-          onChange={(e) => setSearch(e.target.value)} sx={{ flex: 1, minWidth: 220 }}
+          onChange={(e) => setSearch(e.target.value)}
           InputProps={{ startAdornment: (
-            <InputAdornment position="start"><Search sx={{ fontSize: 18, color: KUKAT.textMuted }} /></InputAdornment>
-          )}} />
+            <InputAdornment position="start">
+              <Search sx={{ fontSize: 18, color: KUKAT.textMuted }} />
+            </InputAdornment>
+          )}}
+        />
         <TextField select size="small" label="Status" value={status}
           onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 150 }}>
           {STATUS_FILTERS.map(s => (
-            <MenuItem key={s} value={s} sx={{ textTransform: 'capitalize' }}>{s || 'All statuses'}</MenuItem>
+            <MenuItem key={s} value={s} sx={{ textTransform: 'capitalize' }}>
+              {s || 'All statuses'}
+            </MenuItem>
           ))}
         </TextField>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <DataTable 
+      <DataTable
         columns={COLUMNS} rows={commissions} loading={loading}
         keyField="commissionID" emptyMessage="No commissions found."
         onRowClick={(row) => navigate(`/commissions/${row.commissionID}`)}
       />
+
     </AppLayout>
   );
 }

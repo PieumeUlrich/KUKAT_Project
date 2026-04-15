@@ -110,13 +110,20 @@ export default function CommissionDetailPage() {
   return (
     <AppLayout title={`Commission #${c.commissionID}`} subtitle={c.agentName}>
 
-      {/* Back + actions */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+      {/* ── Back + actions ─────────────────────────────────── */}
+      <Box sx={{
+        display: 'flex',
+        flexDirection: { xs: 'column', sm: 'row' },
+        alignItems: { xs: 'stretch', sm: 'center' },
+        justifyContent: 'space-between',
+        gap: 1.5, mb: 3,
+      }}>
         <Button startIcon={<ArrowBack />} variant="outlined" size="small"
-          onClick={() => navigate('/commissions')}>
+          onClick={() => navigate('/commissions')}
+          sx={{ alignSelf: { xs: 'flex-start', sm: 'auto' } }}>
           Back to commissions
         </Button>
-        <Box sx={{ display: 'flex', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
           {c.status === 'pending' && canApprove() && (
             <Button variant="outlined" color="success" size="small"
               startIcon={<CheckCircle />} disabled={approving}
@@ -135,10 +142,18 @@ export default function CommissionDetailPage() {
 
       {saveErr && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSaveErr('')}>{saveErr}</Alert>}
 
-      <Grid container spacing={2.5}>
+      {/* ── Main layout ────────────────────────────────────── */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 
-        {/* Commission overview */}
-        <Grid item xs={12} md={7}>
+        {/* Commission overview + Agent side by side */}
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '7fr 5fr' },
+          gap: 2.5,
+          alignItems: 'start',
+        }}>
+
+          {/* Commission overview */}
           <Card>
             <CardHeader
               avatar={<AccountBalance sx={{ color: '#7C3AED' }} />}
@@ -147,8 +162,9 @@ export default function CommissionDetailPage() {
               action={<StatusChip status={c.status} />}
             />
             <CardContent>
-              <InfoRow label="Commission rate"    value={`${parseFloat(c.commissionRate || 0).toFixed(1)}%`} />
-              <InfoRow label="Commission amount"  value={fmt(c.commissionAmount)} />
+              <InfoRow label="Commission rate"
+                value={`${parseFloat(c.commissionRate || 0).toFixed(1)}%`} />
+              <InfoRow label="Commission amount" value={fmt(c.commissionAmount)} />
               <InfoRow label="Booking base price" value={fmt(c.basePrice)} />
               <InfoRow label="Invoice total"      value={fmt(c.invoiceTotal)} />
               <InfoRow label="Invoice status"     value={c.invoiceStatus} />
@@ -160,14 +176,14 @@ export default function CommissionDetailPage() {
               )}
             </CardContent>
           </Card>
-        </Grid>
 
-        {/* Agent card */}
-        <Grid item xs={12} md={5}>
+          {/* Agent card */}
           <Card>
-            <CardHeader avatar={<Person sx={{ color: KUKAT.teal }} />}
+            <CardHeader
+              avatar={<Person sx={{ color: KUKAT.teal }} />}
               title="Agent"
-              titleTypographyProps={{ variant: 'h6', sx: { fontSize: '0.95rem', color: KUKAT.navy } }} />
+              titleTypographyProps={{ variant: 'h6', sx: { fontSize: '0.95rem', color: KUKAT.navy } }}
+            />
             <CardContent sx={{ pt: 0 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                 <Avatar sx={{
@@ -186,81 +202,89 @@ export default function CommissionDetailPage() {
               </Box>
               <Divider sx={{ mb: 1.5 }} />
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>Commission earned</Typography>
-                <Typography variant="body2" fontWeight={700} sx={{ color: '#15803D', fontSize: '1rem' }}>
+                <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>
+                  Commission earned
+                </Typography>
+                <Typography variant="body2" fontWeight={700}
+                  sx={{ color: '#15803D', fontSize: '1rem' }}>
                   {fmt(c.commissionAmount)}
                 </Typography>
               </Box>
             </CardContent>
           </Card>
-        </Grid>
+        </Box>
 
-        {/* Payment history */}
-        <Grid item xs={12}>
-          <Card>
-            <CardHeader avatar={<AttachMoney sx={{ color: KUKAT.amber }} />}
-              title="Payment history"
-              titleTypographyProps={{ variant: 'h6', sx: { color: KUKAT.navy } }} />
-            <CardContent sx={{ pt: 0 }}>
-              {(c.payments ?? []).length === 0 ? (
-                <Typography variant="body2" sx={{ color: KUKAT.textMuted, py: 2, textAlign: 'center' }}>
-                  No payments recorded yet.
-                  {c.status === 'approved' && ' Use "Record payment" above to pay this commission.'}
-                </Typography>
-              ) : (
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Date</TableCell>
-                      <TableCell>Method</TableCell>
-                      <TableCell>Reference</TableCell>
-                      <TableCell>Type</TableCell>
-                      <TableCell align="right">Amount</TableCell>
-                      <TableCell>Status</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {(c.payments ?? []).map((p) => (
-                      <TableRow key={p.commPaymentID}>
-                        <TableCell>
-                          {p.paymentDate ? new Date(p.paymentDate).toLocaleDateString('en-CA') : '—'}
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={p.paymentMethod} size="small"
-                            sx={{ fontSize: '0.7rem', height: 20, borderRadius: '4px',
-                              background: `${KUKAT.navy}10`, color: KUKAT.navy }} />
-                        </TableCell>
-                        <TableCell sx={{ color: KUKAT.textMuted }}>{p.reference || '—'}</TableCell>
-                        <TableCell>
-                          {p.isBonus ? (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <Star sx={{ fontSize: 14, color: KUKAT.amber }} />
-                              <Typography variant="caption" sx={{ color: KUKAT.amber, fontWeight: 600 }}>
-                                Bonus
-                              </Typography>
-                            </Box>
-                          ) : (
-                            <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>Regular</Typography>
-                          )}
-                        </TableCell>
-                        <TableCell align="right">
-                          <Typography fontWeight={700} sx={{ color: '#15803D' }}>
-                            {fmt(p.paymentAmount)}
+        {/* Payment history — full width */}
+        <Card>
+          <CardHeader
+            avatar={<AttachMoney sx={{ color: KUKAT.amber }} />}
+            title="Payment history"
+            titleTypographyProps={{ variant: 'h6', sx: { color: KUKAT.navy } }}
+          />
+          <CardContent sx={{ pt: 0 }}>
+            {(c.payments ?? []).length === 0 ? (
+              <Typography variant="body2"
+                sx={{ color: KUKAT.textMuted, py: 2, textAlign: 'center' }}>
+                No payments recorded yet.
+                {c.status === 'approved' && ' Use "Record payment" above to pay this commission.'}
+              </Typography>
+            ) : (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Date</TableCell>
+                    <TableCell>Method</TableCell>
+                    <TableCell>Reference</TableCell>
+                    <TableCell>Type</TableCell>
+                    <TableCell align="right">Amount</TableCell>
+                    <TableCell>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {(c.payments ?? []).map((p) => (
+                    <TableRow key={p.commPaymentID}>
+                      <TableCell>
+                        {p.paymentDate
+                          ? new Date(p.paymentDate).toLocaleDateString('en-CA')
+                          : '—'}
+                      </TableCell>
+                      <TableCell>
+                        <Chip label={p.paymentMethod} size="small"
+                          sx={{ fontSize: '0.7rem', height: 20, borderRadius: '4px',
+                            background: `${KUKAT.navy}10`, color: KUKAT.navy }} />
+                      </TableCell>
+                      <TableCell sx={{ color: KUKAT.textMuted }}>{p.reference || '—'}</TableCell>
+                      <TableCell>
+                        {p.isBonus ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Star sx={{ fontSize: 14, color: KUKAT.amber }} />
+                            <Typography variant="caption"
+                              sx={{ color: KUKAT.amber, fontWeight: 600 }}>
+                              Bonus
+                            </Typography>
+                          </Box>
+                        ) : (
+                          <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>
+                            Regular
                           </Typography>
-                        </TableCell>
-                        <TableCell><StatusChip status={p.status} /></TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
+                        )}
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography fontWeight={700} sx={{ color: '#15803D' }}>
+                          {fmt(p.paymentAmount)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell><StatusChip status={p.status} /></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </Box>
 
-      </Grid>
-
-      {/* Record payment drawer */}
+      {/* ── Record payment drawer ──────────────────────────── */}
       <Drawer anchor="right" open={drawer}
         onClose={() => !saving && setDrawer(false)}
         PaperProps={{ sx: { width: { xs: '100%', sm: 520 }, p: 3 } }}>
@@ -273,60 +297,83 @@ export default function CommissionDetailPage() {
           </Box>
           <IconButton onClick={() => setDrawer(false)} disabled={saving}><Close /></IconButton>
         </Box>
+
         {saveErr && <Alert severity="error" sx={{ mb: 2 }}>{saveErr}</Alert>}
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+            gap: 2,
+          }}>
             <TextField fullWidth label="Amount *" type="number"
               value={payForm.paymentAmount} onChange={setP('paymentAmount')}
               InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }} />
-          </Grid>
-          <Grid item xs={12} sm={6}>
             <TextField select fullWidth label="Method *"
               value={payForm.paymentMethod} onChange={setP('paymentMethod')}>
               {['TRANSFER', 'CHEQUE', 'CASH'].map(m =>
                 <MenuItem key={m} value={m}>{m}</MenuItem>)}
             </TextField>
-          </Grid>
-          <Grid item xs={12} sm={6}>
             <TextField fullWidth label="Payment date" type="date"
               value={payForm.paymentDate} onChange={setP('paymentDate')}
               InputLabelProps={{ shrink: true }} />
-          </Grid>
-          <Grid item xs={12} sm={6}>
             <TextField fullWidth label="Reference"
               value={payForm.reference} onChange={setP('reference')} />
-          </Grid>
-          <Grid item xs={12}>
-            <FormControlLabel
-              control={
-                <Switch checked={payForm.isBonus}
-                  onChange={(e) => setPayForm(p => ({ ...p, isBonus: e.target.checked }))} />
-              }
-              label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Star sx={{ fontSize: 16, color: KUKAT.amber }} />
-                  <Typography variant="body2" fontWeight={500}>This is a bonus payment</Typography>
-                </Box>
-              }
-            />
-          </Grid>
+          </Box>
+
+          <FormControlLabel
+            control={
+              <Switch checked={payForm.isBonus}
+                onChange={(e) => setPayForm(p => ({ ...p, isBonus: e.target.checked }))} />
+            }
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                <Star sx={{ fontSize: 16, color: KUKAT.amber }} />
+                <Typography variant="body2" fontWeight={500}>This is a bonus payment</Typography>
+              </Box>
+            }
+          />
+
           {payForm.isBonus && (
-            <Grid item xs={12}>
-              <TextField fullWidth label="Bonus reason"
-                value={payForm.bonusReason} onChange={setP('bonusReason')}
-                placeholder="e.g. Q4 performance bonus" />
-            </Grid>
+            <TextField fullWidth label="Bonus reason"
+              value={payForm.bonusReason} onChange={setP('bonusReason')}
+              placeholder="e.g. Q4 performance bonus" />
           )}
-        </Grid>
-        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
-          <Button variant="outlined" onClick={() => setDrawer(false)} disabled={saving}>Cancel</Button>
-          <Button variant="contained" disabled={saving || !payForm.paymentAmount}
-            onClick={handlePayment}>
-            {saving ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Record payment'}
-          </Button>
+
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', pt: 1 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setDrawer(false)}
+              disabled={saving}
+              sx={{
+                borderColor: '#DC2626',
+                color: '#DC2626',
+                '&:hover': {
+                  borderColor: '#B91C1C',
+                  background: '#FEE2E2',
+                },
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              disabled={saving || !payForm.paymentAmount}
+              onClick={handlePayment}
+              sx={{
+                color: '#ffffff',
+                '&.Mui-disabled': {
+                  color: '#fff'
+                },
+              }}
+            >
+              {saving ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Record payment'}
+            </Button>
+          </Box>
         </Box>
       </Drawer>
 
-    </AppLayout>
+    </AppLayout>  
   );
 }

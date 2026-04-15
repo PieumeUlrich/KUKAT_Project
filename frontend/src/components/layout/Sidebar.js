@@ -124,16 +124,13 @@ export default function Sidebar() {
   return (
     <Box sx={{
       width,
-      minHeight: '100vh',
+      height: '100vh',
       background: `linear-gradient(180deg, ${KUKAT.navyDark} 0%, ${KUKAT.navy} 60%, ${KUKAT.navyLight} 100%)`,
       display: 'flex',
       flexDirection: 'column',
       transition: 'width 0.25s cubic-bezier(0.4,0,0.2,1)',
       overflow: 'hidden',
       flexShrink: 0,
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
     }}>
 
       {/* ── Logo ─────────────────────────────────────────────── */}
@@ -153,7 +150,7 @@ export default function Sidebar() {
         </Box>
         {!mini && (
           <Typography sx={{
-            color: '#fff', fontFamily: '"Playfair Display", serif',
+            color: '#fff',
             fontWeight: 700, fontSize: '1.35rem', letterSpacing: '-0.01em',
             whiteSpace: 'nowrap',
           }}>

@@ -50,44 +50,67 @@ export default function PackagesPage() {
 
   return (
     <AppLayout title="Travel packages" subtitle={`${safePackages.length} product${safePackages.length !== 1 ? 's' : ''}`}>
-      <Box sx={{ display: 'flex', gap: 2, mb: 2.5, flexWrap: 'wrap', alignItems: 'center' }}>
+
+      {/* ── Search + filters ─────────────────────────────────── */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: '1fr auto auto auto' },
+        gap: 1.5,
+        alignItems: 'center',
+        mb: 2.5,
+      }}>
         <TextField placeholder="Search packages…" size="small" value={search}
-          onChange={(e) => setSearch(e.target.value)} sx={{ flex: 1, minWidth: 220 }}
-          InputProps={{ startAdornment: <InputAdornment position="start">
-            <Search sx={{ fontSize: 18, color: KUKAT.textMuted }} /></InputAdornment> }} />
+          onChange={(e) => setSearch(e.target.value)}
+          InputProps={{ startAdornment: (
+            <InputAdornment position="start">
+              <Search sx={{ fontSize: 18, color: KUKAT.textMuted }} />
+            </InputAdornment>
+          )}}
+        />
         <TextField select size="small" label="Category" value={category}
           onChange={(e) => setCategory(e.target.value)} sx={{ minWidth: 160 }}>
           <MenuItem value="">All categories</MenuItem>
           {categories.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
         </TextField>
-        <IconButton onClick={refetch} size="small" sx={{ color: KUKAT.textMuted }}><Refresh /></IconButton>
+        <IconButton onClick={refetch} size="small" sx={{ color: KUKAT.textMuted }}>
+          <Refresh />
+        </IconButton>
         {(isAdmin() || isManager()) && (
-          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>New package</Button>
+          <Button variant="contained" startIcon={<Add />} onClick={openCreate}>
+            New package
+          </Button>
         )}
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
+      {/* ── Package cards ─────────────────────────────────────── */}
       {loading ? (
-        <Grid container spacing={2}>
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' },
+          gap: 2,
+        }}>
           {Array.from({ length: 8 }).map((_, i) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={i}>
-              <Card sx={{ height: 180 }} />
-            </Grid>
+            <Card key={i} sx={{ height: 180 }} />
           ))}
-        </Grid>
+        </Box>
       ) : (
-        <Grid container spacing={2}>
-          {packages.map(pkg => {
-            const bgColor = CATEGORY_COLORS[pkg.categoryName] || '#F1F5F9';
-            return (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={pkg.productID}>
-                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column',
-                  transition: 'box-shadow 0.2s', '&:hover': { boxShadow: 4 } }}>
-                  <Box sx={{ background: bgColor, p: 2, display: 'flex',
-                    alignItems: 'center', gap: 1.5 }}>
-                    <Avatar sx={{ width: 38, height: 38, background: 'rgba(0,0,0,0.08)',
-                      color: KUKAT.navy }}>
+        <>
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' },
+            gap: 2,
+          }}>
+            {safePackages.map(pkg => {
+              const bgColor = CATEGORY_COLORS[pkg.categoryName] || '#F1F5F9';
+              return (
+                <Card key={pkg.productID} sx={{
+                  height: '100%', display: 'flex', flexDirection: 'column',
+                  transition: 'box-shadow 0.2s', '&:hover': { boxShadow: 4 },
+                }}>
+                  <Box sx={{ background: bgColor, p: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Avatar sx={{ width: 38, height: 38, background: 'rgba(0,0,0,0.08)', color: KUKAT.navy }}>
                       <CardTravel sx={{ fontSize: 20 }} />
                     </Avatar>
                     <Box sx={{ flex: 1, overflow: 'hidden' }}>
@@ -96,19 +119,18 @@ export default function PackagesPage() {
                         {pkg.productName}
                       </Typography>
                       <Chip label={pkg.categoryName || '—'} size="small"
-                        sx={{ fontSize: '0.68rem', height: 18, background: 'rgba(0,0,0,0.08)',
-                          color: KUKAT.navy, mt: 0.3 }} />
+                        sx={{ fontSize: '0.68rem', height: 18,
+                          background: 'rgba(0,0,0,0.08)', color: KUKAT.navy, mt: 0.3 }} />
                     </Box>
                   </Box>
                   <CardContent sx={{ flex: 1, pt: 1.5 }}>
-                    <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>
-                      Supplier
-                    </Typography>
+                    <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>Supplier</Typography>
                     <Typography variant="body2" fontWeight={500} sx={{ color: KUKAT.navy, mb: 1 }}>
                       {pkg.supplierName || '—'}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: KUKAT.textMuted, display: '-webkit-box',
-                      WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    <Typography variant="caption" sx={{ color: KUKAT.textMuted,
+                      display: '-webkit-box', WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {pkg.description || 'No description available.'}
                     </Typography>
                     <Chip label={pkg.isActive ? 'Active' : 'Inactive'} size="small"
@@ -118,41 +140,50 @@ export default function PackagesPage() {
                   </CardContent>
                   {(isAdmin() || isManager()) && (
                     <CardActions sx={{ pt: 0, px: 2, pb: 1.5 }}>
-                      <Button size="small" startIcon={<Edit sx={{ fontSize: '14px !important' }} />}
+                      <Button size="small"
+                        startIcon={<Edit sx={{ fontSize: '14px !important' }} />}
                         onClick={() => openEdit(pkg)}>
                         Edit
                       </Button>
                     </CardActions>
                   )}
                 </Card>
-              </Grid>
-            );
-          })}
-          {packages.length === 0 && (
-            <Grid item xs={12}>
-              <Box sx={{ py: 8, textAlign: 'center' }}>
-                <CardTravel sx={{ fontSize: 48, color: KUKAT.border, mb: 1 }} />
-                <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>No packages found.</Typography>
-              </Box>
-            </Grid>
+              );
+            })}
+          </Box>
+
+          {safePackages.length === 0 && (
+            <Box sx={{ py: 8, textAlign: 'center' }}>
+              <CardTravel sx={{ fontSize: 48, color: KUKAT.border, mb: 1 }} />
+              <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>
+                No packages found.
+              </Typography>
+            </Box>
           )}
-        </Grid>
+        </>
       )}
 
+      {/* ── Drawer ────────────────────────────────────────────── */}
       <Drawer anchor="right" open={drawerOpen}
         onClose={() => !saving && setDrawerOpen(false)}
         PaperProps={{ sx: { width: { xs: '100%', sm: 520 }, p: 3, overflow: 'auto' } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-          <Box>
-            <Typography variant="h5" sx={{ color: KUKAT.navy }}>
-              {selected ? 'Edit package' : 'New package'}
-            </Typography>
-          </Box>
+          <Typography variant="h5" sx={{ color: KUKAT.navy }}>
+            {selected ? 'Edit package' : 'New package'}
+          </Typography>
           <IconButton onClick={() => setDrawerOpen(false)} disabled={saving}><Close /></IconButton>
         </Box>
-        {saveError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSaveError('')}>{saveError}</Alert>}
-        <PackageForm initial={selected} onSave={handleSave} onCancel={() => setDrawerOpen(false)} saving={saving} />
+        {saveError && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSaveError('')}>{saveError}</Alert>
+        )}
+        <PackageForm
+          initial={selected}
+          onSave={handleSave}
+          onCancel={() => setDrawerOpen(false)}
+          saving={saving}
+        />
       </Drawer>
+
     </AppLayout>
   );
 }

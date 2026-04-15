@@ -115,28 +115,23 @@ export default function BookingsPage() {
       subtitle={`${total} total booking${total !== 1 ? 's' : ''}`}
     >
       {/* ── Stats bar ──────────────────────────────────────── */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={6} sm={2.4}>
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(5, 1fr)' },
+        gap: 2,
+        mb: 3,
+      }}>
           <StatCard label="Total" value={stats.total}
             icon={<BookOnline />} color={KUKAT.navy} loading={loading} />
-        </Grid>
-        <Grid item xs={6} sm={2.4}>
           <StatCard label="Confirmed" value={stats.confirmed}
             icon={<CheckCircle />} color="#15803D" loading={loading} />
-        </Grid>
-        <Grid item xs={6} sm={2.4}>
           <StatCard label="Pending" value={stats.pending}
             icon={<HourglassEmpty />} color={KUKAT.amber} loading={loading} />
-        </Grid>
-        <Grid item xs={6} sm={2.4}>
           <StatCard label="Completed" value={stats.completed}
             icon={<CheckCircle />} color={KUKAT.teal} loading={loading} />
-        </Grid>
-        <Grid item xs={6} sm={2.4}>
           <StatCard label="Cancelled" value={stats.cancelled}
             icon={<Cancel />} color="#DC2626" loading={loading} />
-        </Grid>
-      </Grid>
+      </Box>
 
       {/* ── Toolbar ────────────────────────────────────────── */}
       <Box sx={{

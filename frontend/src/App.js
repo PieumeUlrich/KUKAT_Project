@@ -26,7 +26,7 @@ import ChangePasswordPage    from './pages/auth/ChangePasswordPage';
 
 const { SUPERADMIN, MANAGER, AGENT, ACCOUNTANT, HR } = ROLES;
 
-function App() {
+const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />

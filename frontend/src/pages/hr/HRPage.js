@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box, Grid, Card, CardContent, CardHeader, Typography, Button,
-  TextField, MenuItem, Alert, Avatar, Chip, Divider,
+  Box, Card, CardContent, Typography, Button,
+  TextField, MenuItem, Alert, Avatar, Divider,
   Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress,
 } from '@mui/material';
 import { SwapHoriz, People, TrendingUp } from '@mui/icons-material';
@@ -75,41 +75,59 @@ export default function HRPage() {
   return (
     <AppLayout title="HR — Client management" subtitle="Manage agent assignments and workloads">
 
-      {/* Agent workload cards */}
+      {/* ── Agent workload cards ──────────────────────────────── */}
       <Typography variant="h6" sx={{ color: KUKAT.navy, mb: 2 }}>Agent workloads</Typography>
-      <Grid container spacing={2} sx={{ mb: 3 }}>
+
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' },
+        gap: 2,
+        mb: 3,
+      }}>
         {agentStats.slice(0, 6).map(a => (
-          <Grid item xs={12} sm={6} md={4} key={a.employeeID}>
-            <Card sx={{ cursor: 'pointer', border: filterAgent === a.employeeID
-              ? `2px solid ${KUKAT.amber}` : `1px solid ${KUKAT.border}` }}
-              onClick={() => setFilterAgent(prev => prev === a.employeeID ? '' : a.employeeID)}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: '14px !important' }}>
-                <Avatar sx={{ width: 38, height: 38, fontSize: '0.85rem', fontWeight: 700,
-                  background: KUKAT.navy, color: '#fff' }}>
-                  {a.firstName?.[0]}{a.lastName?.[0]}
-                </Avatar>
-                <Box sx={{ flex: 1 }}>
-                  <Typography variant="body2" fontWeight={600} sx={{ color: KUKAT.navy }}>
-                    {a.firstName} {a.lastName}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>{a.agentCode}</Typography>
-                </Box>
-                <Box sx={{ textAlign: 'right' }}>
-                  <Typography sx={{ fontSize: '1.3rem', fontWeight: 700, color: KUKAT.teal, lineHeight: 1 }}>
-                    {a.customerCount}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>clients</Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+          <Card key={a.employeeID}
+            sx={{
+              cursor: 'pointer',
+              border: filterAgent === a.employeeID
+                ? `2px solid ${KUKAT.amber}`
+                : `1px solid ${KUKAT.border}`,
+            }}
+            onClick={() => setFilterAgent(prev => prev === a.employeeID ? '' : a.employeeID)}>
+            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: '14px !important' }}>
+              <Avatar sx={{
+                width: 38, height: 38, fontSize: '0.85rem', fontWeight: 700,
+                background: KUKAT.navy, color: '#fff',
+              }}>
+                {a.firstName?.[0]}{a.lastName?.[0]}
+              </Avatar>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" fontWeight={600} sx={{ color: KUKAT.navy }}>
+                  {a.firstName} {a.lastName}
+                </Typography>
+                <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>{a.agentCode}</Typography>
+              </Box>
+              <Box sx={{ textAlign: 'right' }}>
+                <Typography sx={{ fontSize: '1.3rem', fontWeight: 700, color: KUKAT.teal, lineHeight: 1 }}>
+                  {a.customerCount}
+                </Typography>
+                <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>clients</Typography>
+              </Box>
+            </CardContent>
+          </Card>
         ))}
-      </Grid>
+      </Box>
 
       <Divider sx={{ mb: 3 }} />
 
-      {/* Customer table with bulk select */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+      {/* ── Customer table header ─────────────────────────────── */}
+      <Box sx={{
+        display: 'flex',
+        flexDirection: { xs: 'column', sm: 'row' },
+        alignItems: { xs: 'stretch', sm: 'center' },
+        justifyContent: 'space-between',
+        gap: 1.5,
+        mb: 2,
+      }}>
         <Box>
           <Typography variant="h6" sx={{ color: KUKAT.navy }}>
             {filterAgent
@@ -125,7 +143,7 @@ export default function HRPage() {
         {selected.length > 0 && (
           <Button variant="contained" startIcon={<SwapHoriz />}
             onClick={() => { setSaveErr(''); setDialogOpen(true); }}
-            sx={{ background: KUKAT.teal }}>
+            sx={{ background: KUKAT.teal, alignSelf: { xs: 'flex-start', sm: 'auto' } }}>
             Reassign {selected.length} selected
           </Button>
         )}
@@ -134,7 +152,6 @@ export default function HRPage() {
       {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
       {error   && <Alert severity="error"   sx={{ mb: 2 }}>{error}</Alert>}
 
-      {/* Note: full row-selection requires extending DataTable — for now clicking row toggles */}
       <DataTable
         columns={COLUMNS}
         rows={customers}
@@ -155,20 +172,24 @@ export default function HRPage() {
           <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>
             {selected.length} customer{selected.length > 1 ? 's' : ''} selected
           </Typography>
-          <Button size="small" onClick={() => setSelected([])} sx={{ px: 0 }}>Clear selection</Button>
+          <Button size="small" onClick={() => setSelected([])} sx={{ px: 0 }}>
+            Clear selection
+          </Button>
         </Box>
       )}
 
-      {/* Reassign dialog */}
+      {/* ── Reassign dialog ────────────────────────────────────── */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Reassign {selected.length} customer{selected.length > 1 ? 's' : ''}</DialogTitle>
+        <DialogTitle>
+          Reassign {selected.length} customer{selected.length > 1 ? 's' : ''}
+        </DialogTitle>
         <DialogContent>
           {saveErr && <Alert severity="error" sx={{ mb: 2 }}>{saveErr}</Alert>}
           <Typography variant="body2" sx={{ color: KUKAT.textMuted, mb: 2 }}>
             Select the agent to assign these customers to.
           </Typography>
-          <TextField select fullWidth label="New agent" value={newAgent}
-            onChange={(e) => setNewAgent(e.target.value)}>
+          <TextField select fullWidth label="New agent"
+            value={newAgent} onChange={(e) => setNewAgent(e.target.value)}>
             {agents.map(a => (
               <MenuItem key={a.employeeID} value={a.employeeID}>
                 {a.firstName} {a.lastName} ({a.agentCode}) — {agentStats.find(s => s.employeeID === a.employeeID)?.customerCount ?? 0} clients
@@ -178,11 +199,13 @@ export default function HRPage() {
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleBulkReassign} disabled={!newAgent || saving}>
+          <Button variant="contained" onClick={handleBulkReassign}
+            disabled={!newAgent || saving}>
             {saving ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : 'Reassign'}
           </Button>
         </DialogActions>
       </Dialog>
-    </AppLayout>
+
+    </AppLayout>  
   );
 }

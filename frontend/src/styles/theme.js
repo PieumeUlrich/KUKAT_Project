@@ -72,13 +72,13 @@ const theme = createTheme({
 
   // ── Typography ─────────────────────────────────────────────
   typography: {
-    fontFamily: '"DM Sans", "Helvetica Neue", sans-serif',
-    h1: { fontFamily: '"Playfair Display", serif', fontWeight: 700, fontSize: '2.5rem' },
-    h2: { fontFamily: '"Playfair Display", serif', fontWeight: 700, fontSize: '2rem' },
-    h3: { fontFamily: '"Playfair Display", serif', fontWeight: 600, fontSize: '1.5rem' },
-    h4: { fontFamily: '"DM Sans", sans-serif',     fontWeight: 600, fontSize: '1.25rem' },
-    h5: { fontFamily: '"DM Sans", sans-serif',     fontWeight: 600, fontSize: '1.1rem' },
-    h6: { fontFamily: '"DM Sans", sans-serif',     fontWeight: 600, fontSize: '1rem' },
+    fontFamily: '"DM Sans", "Inter", -apple-system, BlinkMacSystemFont, sans-serif',
+    h1: { fontWeight: 700, fontSize: '2.5rem' },
+    h2: { fontWeight: 700, fontSize: '2rem' },
+    h3: { fontWeight: 600, fontSize: '1.5rem' },
+    h4: { fontWeight: 600, fontSize: '1.25rem' },
+    h5: { fontWeight: 600, fontSize: '1.1rem' },
+    h6: { fontWeight: 600, fontSize: '1rem' },
     subtitle1: { fontWeight: 500, fontSize: '0.95rem', color: KUKAT.textMuted },
     subtitle2: { fontWeight: 500, fontSize: '0.85rem', color: KUKAT.textMuted },
     body1: { fontSize: '0.95rem', lineHeight: 1.6 },
@@ -86,7 +86,6 @@ const theme = createTheme({
     button: { fontWeight: 600, textTransform: 'none', letterSpacing: '0.01em' },
     caption: { fontSize: '0.75rem', color: KUKAT.textMuted },
   },
-
   // ── Shape ──────────────────────────────────────────────────
   shape: { borderRadius: 10 },
 
@@ -106,9 +105,15 @@ const theme = createTheme({
 
     MuiCssBaseline: {
       styleOverrides: `
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
-        * { box-sizing: border-box; }
-        body { background-color: ${KUKAT.surface}; }
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Miranda+Sans:ital,wght@0,400..700;1,400..700&display=swap');
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+          font-family: 'Miranda Sans', 'DM Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          background-color: ${KUKAT.surface};
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: ${KUKAT.surface}; }
         ::-webkit-scrollbar-thumb { background: ${KUKAT.border}; border-radius: 3px; }
@@ -240,6 +245,16 @@ const theme = createTheme({
     MuiDivider: {
       styleOverrides: {
         root: { borderColor: KUKAT.border },
+      },
+    },
+
+    MuiGrid: {
+      styleOverrides: {
+        item: {
+          '& > *': {
+            width: '100%',
+          },
+        },
       },
     },
 

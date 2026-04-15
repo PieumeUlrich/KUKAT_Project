@@ -70,11 +70,21 @@ export default function CustomerDetailPage() {
 
   return (
     <AppLayout title={`${c.firstName} ${c.lastName}`} subtitle={c.email}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-        <Button startIcon={<ArrowBack />} onClick={() => navigate('/customers')} variant="outlined" size="small">
+
+      {/* ── Back + actions ─────────────────────────────────── */}
+      <Box sx={{
+        display: 'flex',
+        flexDirection: { xs: 'column', sm: 'row' },
+        alignItems: { xs: 'stretch', sm: 'center' },
+        justifyContent: 'space-between',
+        gap: 1.5, mb: 3,
+      }}>
+        <Button startIcon={<ArrowBack />} onClick={() => navigate('/customers')}
+          variant="outlined" size="small"
+          sx={{ alignSelf: { xs: 'flex-start', sm: 'auto' } }}>
           Back
         </Button>
-        <Box sx={{ display: 'flex', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
           {(isHR() || isAdmin() || isManager()) && (
             <Button startIcon={<SwapHoriz />} variant="outlined" size="small"
               onClick={() => setReassignOpen(true)}>
@@ -90,27 +100,45 @@ export default function CustomerDetailPage() {
 
       {saveErr && <Alert severity="error" sx={{ mb: 2 }}>{saveErr}</Alert>}
 
-      <Grid container spacing={2.5}>
-        {/* Profile */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ mb: 2 }}>
+      {/* ── Main layout ────────────────────────────────────── */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', md: '1fr 2fr' },
+        gap: 2.5,
+        alignItems: 'start',
+      }}>
+
+        {/* ── Left column: Profile + Address ─────────────── */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+          <Card>
             <CardContent sx={{ textAlign: 'center', pt: 3 }}>
-              <Avatar sx={{ width: 64, height: 64, fontSize: '1.4rem', fontWeight: 700,
+              <Avatar sx={{
+                width: 64, height: 64, fontSize: '1.4rem', fontWeight: 700,
                 background: `linear-gradient(135deg, ${KUKAT.amber}, ${KUKAT.amberDark})`,
-                color: KUKAT.navy, mx: 'auto', mb: 1.5 }}>
+                color: KUKAT.navy, mx: 'auto', mb: 1.5,
+              }}>
                 {c.firstName?.[0]}{c.lastName?.[0]}
               </Avatar>
-              <Typography variant="h6" sx={{ color: KUKAT.navy }}>{c.firstName} {c.lastName}</Typography>
-              <Typography variant="body2" sx={{ color: KUKAT.textMuted, mb: 2 }}>{c.email}</Typography>
+              <Typography variant="h6" sx={{ color: KUKAT.navy }}>
+                {c.firstName} {c.lastName}
+              </Typography>
+              <Typography variant="body2" sx={{ color: KUKAT.textMuted, mb: 2 }}>
+                {c.email}
+              </Typography>
               <Divider sx={{ mb: 2 }} />
-              <InfoRow label="Home phone"  value={c.homePhone} />
-              <InfoRow label="Business ph." value={c.businessPhone} />
-              <InfoRow label="Date of birth" value={c.birthDate ? new Date(c.birthDate).toLocaleDateString('en-CA') : null} />
+              <InfoRow label="Home phone"    value={c.homePhone} />
+              <InfoRow label="Business ph."  value={c.businessPhone} />
+              <InfoRow label="Date of birth"
+                value={c.birthDate
+                  ? new Date(c.birthDate).toLocaleDateString('en-CA')
+                  : null} />
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader title="Address" titleTypographyProps={{ variant: 'h6', sx: { color: KUKAT.navy, fontSize: '0.95rem' } }} />
+            <CardHeader title="Address"
+              titleTypographyProps={{ variant: 'h6', sx: { color: KUKAT.navy, fontSize: '0.95rem' } }} />
             <CardContent sx={{ pt: 0 }}>
               <InfoRow label="Street"   value={c.address} />
               <InfoRow label="City"     value={c.city} />
@@ -119,11 +147,13 @@ export default function CustomerDetailPage() {
               <InfoRow label="Country"  value={c.country} />
             </CardContent>
           </Card>
-        </Grid>
 
-        {/* Bookings */}
-        <Grid item xs={12} md={8}>
-          <Card sx={{ mb: 2.5 }}>
+        </Box>
+
+        {/* ── Right column: Bookings + Cards ─────────────── */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+          <Card>
             <CardHeader title="Booking history"
               titleTypographyProps={{ variant: 'h6', sx: { color: KUKAT.navy } }}
               action={
@@ -150,22 +180,28 @@ export default function CustomerDetailPage() {
                         onClick={() => navigate(`/bookings/${b.bookingID}`)}>
                         <TableCell>#{b.bookingID}</TableCell>
                         <TableCell>{b.productName}</TableCell>
-                        <TableCell>{b.tripStart ? new Date(b.tripStart).toLocaleDateString('en-CA') : '—'}</TableCell>
-                        <TableCell align="right">${parseFloat(b.basePrice || 0).toFixed(2)}</TableCell>
+                        <TableCell>
+                          {b.tripStart
+                            ? new Date(b.tripStart).toLocaleDateString('en-CA')
+                            : '—'}
+                        </TableCell>
+                        <TableCell align="right">
+                          ${parseFloat(b.basePrice || 0).toFixed(2)}
+                        </TableCell>
                         <TableCell><StatusChip status={b.status} /></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               ) : (
-                <Typography variant="body2" sx={{ color: KUKAT.textMuted, py: 2, textAlign: 'center' }}>
+                <Typography variant="body2"
+                  sx={{ color: KUKAT.textMuted, py: 2, textAlign: 'center' }}>
                   No bookings yet.
                 </Typography>
               )}
             </CardContent>
           </Card>
 
-          {/* Credit cards */}
           <Card>
             <CardHeader title="Payment cards"
               titleTypographyProps={{ variant: 'h6', sx: { color: KUKAT.navy } }}
@@ -174,54 +210,69 @@ export default function CustomerDetailPage() {
             <CardContent sx={{ pt: 0 }}>
               {c.cards?.length > 0 ? c.cards.map((card) => (
                 <Box key={card.cardID} sx={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  py: 1.5, borderBottom: `1px solid ${KUKAT.border}`, '&:last-child': { borderBottom: 'none' },
+                  display: 'flex', alignItems: 'center',
+                  justifyContent: 'space-between', py: 1.5,
+                  borderBottom: `1px solid ${KUKAT.border}`,
+                  '&:last-child': { borderBottom: 'none' },
                 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Box sx={{ width: 36, height: 24, borderRadius: '4px', background: KUKAT.surface,
-                      border: `1px solid ${KUKAT.border}`, display: 'flex', alignItems: 'center',
-                      justifyContent: 'center' }}>
+                    <Box sx={{
+                      width: 36, height: 24, borderRadius: '4px',
+                      background: KUKAT.surface,
+                      border: `1px solid ${KUKAT.border}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
                       <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: KUKAT.navy }}>
                         {card.cardType}
                       </Typography>
                     </Box>
                     <Box>
                       <Typography variant="body2" fontWeight={600}>{card.cardNumber}</Typography>
-                      <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>{card.cardHolderName}</Typography>
+                      <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>
+                        {card.cardHolderName}
+                      </Typography>
                     </Box>
                   </Box>
                   <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>
-                    Exp. {card.expiryDate ? new Date(card.expiryDate).toLocaleDateString('en-CA', { month: '2-digit', year: '2-digit' }) : '—'}
+                    Exp. {card.expiryDate
+                      ? new Date(card.expiryDate).toLocaleDateString('en-CA',
+                          { month: '2-digit', year: '2-digit' })
+                      : '—'}
                   </Typography>
                 </Box>
               )) : (
-                <Typography variant="body2" sx={{ color: KUKAT.textMuted, py: 2, textAlign: 'center' }}>
+                <Typography variant="body2"
+                  sx={{ color: KUKAT.textMuted, py: 2, textAlign: 'center' }}>
                   No cards on file.
                 </Typography>
               )}
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
 
-      {/* Edit drawer */}
-      <Drawer anchor="right" open={editOpen} onClose={() => !saving && setEditOpen(false)}
+        </Box>
+      </Box>
+
+      {/* ── Edit drawer ────────────────────────────────────── */}
+      <Drawer anchor="right" open={editOpen}
+        onClose={() => !saving && setEditOpen(false)}
         PaperProps={{ sx: { width: { xs: '100%', sm: 560 }, p: 3, overflow: 'auto' } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
           <Typography variant="h5" sx={{ color: KUKAT.navy }}>Edit customer</Typography>
           <IconButton onClick={() => setEditOpen(false)} disabled={saving}><Close /></IconButton>
         </Box>
-        <CustomerForm initial={c} onSave={handleEdit} onCancel={() => setEditOpen(false)} saving={saving} />
+        <CustomerForm initial={c} onSave={handleEdit}
+          onCancel={() => setEditOpen(false)} saving={saving} />
       </Drawer>
 
-      {/* Reassign dialog */}
+      {/* ── Reassign dialog ────────────────────────────────── */}
       <Dialog open={reassignOpen} onClose={() => setReassignOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Reassign agent</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ color: KUKAT.textMuted, mb: 2 }}>
             Currently assigned to: <strong>{c.agentFirstName} {c.agentLastName}</strong>
           </Typography>
-          <TextField select fullWidth label="New agent" value={newAgent} onChange={(e) => setNewAgent(e.target.value)}>
+          <TextField select fullWidth label="New agent"
+            value={newAgent} onChange={(e) => setNewAgent(e.target.value)}>
             {agents.map((a) => (
               <MenuItem key={a.employeeID} value={a.employeeID}>
                 {a.firstName} {a.lastName} ({a.agentCode})
@@ -231,11 +282,12 @@ export default function CustomerDetailPage() {
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setReassignOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleReassign} disabled={!newAgent || saving}>
+          <Button variant="contained" onClick={handleReassign}
+            disabled={!newAgent || saving}>
             {saving ? 'Saving…' : 'Reassign'}
           </Button>
         </DialogActions>
       </Dialog>
-    </AppLayout>
-  );
+
+    </AppLayout>  );
 }

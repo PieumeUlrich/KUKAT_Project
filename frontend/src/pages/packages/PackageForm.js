@@ -31,40 +31,53 @@ export function PackageForm({ initial = {}, onSave, onCancel, saving }) {
   };
 
   return (
-    <Box>
-      <Grid container spacing={2}>
-        <Grid item xs={12}>
-          <TextField fullWidth label="Package name *" value={form.productName} onChange={set('productName')}
-            error={!!errors.productName} helperText={errors.productName} />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField select fullWidth label="Supplier *" value={form.supplierID} onChange={set('supplierID')}
-            error={!!errors.supplierID} helperText={errors.supplierID}>
-            {suppliers.map(s => <MenuItem key={s.supplierID} value={s.supplierID}>{s.supplierName}</MenuItem>)}
-          </TextField>
-        </Grid>
-        <Grid item xs={12}>
-          <TextField select fullWidth label="Category *" value={form.categoryID} onChange={set('categoryID')}
-            error={!!errors.categoryID} helperText={errors.categoryID}>
-            {categories.map(c => <MenuItem key={c.categoryID} value={c.categoryID}>{c.categoryName}</MenuItem>)}
-          </TextField>
-        </Grid>
-        <Grid item xs={12}>
-          <TextField fullWidth label="Description" multiline rows={3} value={form.description} onChange={set('description')} />
-        </Grid>
-        <Grid item xs={12}>
-          <FormControlLabel
-            control={<Switch checked={form.isActive} onChange={(e) => setForm(p => ({ ...p, isActive: e.target.checked }))} />}
-            label="Active (visible to agents)" />
-        </Grid>
-      </Grid>
-      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3, pt: 3, borderTop: `1px solid ${KUKAT.border}` }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+      <TextField fullWidth label="Package name *" value={form.productName}
+        onChange={set('productName')}
+        error={!!errors.productName} helperText={errors.productName} />
+
+      <TextField select fullWidth label="Supplier *" value={form.supplierID}
+        onChange={set('supplierID')}
+        error={!!errors.supplierID} helperText={errors.supplierID}>
+        {suppliers.map(s => (
+          <MenuItem key={s.supplierID} value={s.supplierID}>{s.supplierName}</MenuItem>
+        ))}
+      </TextField>
+
+      <TextField select fullWidth label="Category *" value={form.categoryID}
+        onChange={set('categoryID')}
+        error={!!errors.categoryID} helperText={errors.categoryID}>
+        {categories.map(c => (
+          <MenuItem key={c.categoryID} value={c.categoryID}>{c.categoryName}</MenuItem>
+        ))}
+      </TextField>
+
+      <TextField fullWidth label="Description" multiline rows={3}
+        value={form.description} onChange={set('description')} />
+
+      <FormControlLabel
+        control={
+          <Switch checked={form.isActive}
+            onChange={(e) => setForm(p => ({ ...p, isActive: e.target.checked }))} />
+        }
+        label="Active (visible to agents)"
+      />
+
+      <Box sx={{
+        display: 'flex', gap: 2, justifyContent: 'flex-end',
+        mt: 1, pt: 3, borderTop: `1px solid ${KUKAT.border}`,
+      }}>
         <Button variant="outlined" onClick={onCancel} disabled={saving}>Cancel</Button>
-        <Button variant="contained" onClick={() => { if (validate()) onSave(form); }} disabled={saving}>
-          {saving ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : initial?.productID ? 'Save changes' : 'Create'}
+        <Button variant="contained" disabled={saving}
+          onClick={() => { if (validate()) onSave(form); }}>
+          {saving
+            ? <CircularProgress size={20} sx={{ color: '#fff' }} />
+            : initial?.productID ? 'Save changes' : 'Create'}
         </Button>
       </Box>
-    </Box>
+
+    </Box>  
   );
 }
 

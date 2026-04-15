@@ -61,42 +61,49 @@ function AddPaymentForm({ invoiceID, totalAmount, onSave, onCancel, saving }) {
   const set = (f) => (e) => setForm((p) => ({ ...p, [f]: e.target.value }));
 
   return (
-    <Box>
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
-          <TextField fullWidth label="Amount paid" type="number" value={form.amountPaid} onChange={set('amountPaid')}
-            InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }} />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField select fullWidth label="Payment method" value={form.paymentMethod} onChange={set('paymentMethod')}>
-            {['CARD','CASH','TRANSFER','CHECK'].map(m => <MenuItem key={m} value={m}>{m}</MenuItem>)}
-          </TextField>
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField select fullWidth label="Payment type" value={form.paymentType} onChange={set('paymentType')}>
-            {['deposit','partial','full','refund'].map(t => <MenuItem key={t} value={t} sx={{ textTransform: 'capitalize' }}>{t}</MenuItem>)}
-          </TextField>
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField fullWidth label="Payment date" type="date" value={form.paymentDate}
-            onChange={set('paymentDate')} InputLabelProps={{ shrink: true }} />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField fullWidth label="Reference / transaction #" value={form.reference} onChange={set('reference')} />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField fullWidth label="Notes" multiline rows={2} value={form.notes} onChange={set('notes')} />
-        </Grid>
-      </Grid>
-      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+        gap: 2,
+      }}>
+        <TextField fullWidth label="Amount paid" type="number"
+          value={form.amountPaid} onChange={set('amountPaid')}
+          InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }} />
+
+        <TextField select fullWidth label="Payment method"
+          value={form.paymentMethod} onChange={set('paymentMethod')}>
+          {['CARD', 'CASH', 'TRANSFER', 'CHECK'].map(m =>
+            <MenuItem key={m} value={m}>{m}</MenuItem>)}
+        </TextField>
+
+        <TextField select fullWidth label="Payment type"
+          value={form.paymentType} onChange={set('paymentType')}>
+          {['deposit', 'partial', 'full', 'refund'].map(t =>
+            <MenuItem key={t} value={t} sx={{ textTransform: 'capitalize' }}>{t}</MenuItem>)}
+        </TextField>
+
+        <TextField fullWidth label="Payment date" type="date"
+          value={form.paymentDate} onChange={set('paymentDate')}
+          InputLabelProps={{ shrink: true }} />
+      </Box>
+
+      <TextField fullWidth label="Reference / transaction #"
+        value={form.reference} onChange={set('reference')} />
+
+      <TextField fullWidth label="Notes" multiline rows={2}
+        value={form.notes} onChange={set('notes')} />
+
+      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 1 }}>
         <Button variant="outlined" onClick={onCancel} disabled={saving}>Cancel</Button>
         <Button variant="contained" disabled={saving || !form.amountPaid}
           onClick={() => onSave({ ...form, invoiceID })}>
           {saving ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Record payment'}
         </Button>
       </Box>
-    </Box>
-  );
+
+    </Box>  );
 }
 
 export default function InvoicesPage() {
@@ -130,57 +137,91 @@ export default function InvoicesPage() {
   return (
     <AppLayout title="Invoices" subtitle={`${total} total invoice${total !== 1 ? 's' : ''}`}>
 
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={6} sm={3}><StatCard label="Total invoices" value={total}
-          icon={<Receipt />} color={KUKAT.navy} loading={loading} /></Grid>
-        <Grid item xs={6} sm={3}><StatCard label="Revenue collected" value={totalRevenue.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
-          icon={<AttachMoney />} color="#15803D" loading={loading} prefix="$" /></Grid>
-        <Grid item xs={6} sm={3}><StatCard label="Unpaid" value={totalUnpaid}
-          icon={<HourglassEmpty />} color={KUKAT.amber} loading={loading} /></Grid>
-        <Grid item xs={6} sm={3}><StatCard label="Paid" value={totalPaid}
-          icon={<CheckCircle />} color={KUKAT.teal} loading={loading} /></Grid>
-        <Grid item xs={6} sm={3}><StatCard label="Refunded" value={totalRefunded}
-          icon={<Cancel />} color="#5f44ef" loading={loading} /></Grid>
+      {/* ── Stat cards ───────────────────────────────────────── */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(5, 1fr)' },
+        gap: 2,
+        mb: 3,
+      }}>
+        <StatCard label="Total invoices" value={total}
+          icon={<Receipt />} color={KUKAT.navy} loading={loading} />
+        <StatCard label="Revenue collected"
+          value={totalRevenue.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+          icon={<AttachMoney />} color="#15803D" loading={loading} prefix="$" />
+        <StatCard label="Unpaid" value={totalUnpaid}
+          icon={<HourglassEmpty />} color={KUKAT.amber} loading={loading} />
+        <StatCard label="Paid" value={totalPaid}
+          icon={<CheckCircle />} color={KUKAT.teal} loading={loading} />
+        <StatCard label="Refunded" value={totalRefunded}
+          icon={<Cancel />} color="#5f44ef" loading={loading} />
+      </Box>
 
-      </Grid>
-
-      <Box sx={{ display: 'flex', gap: 2, mb: 2.5, flexWrap: 'wrap', alignItems: 'center' }}>
-        <TextField placeholder="Search invoice #, customer, booking…" size="small" value={search}
-          onChange={(e) => setSearch(e.target.value)} sx={{ flex: 1, minWidth: 220 }}
+      {/* ── Search + filters ─────────────────────────────────── */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: '1fr auto' },
+        gap: 1.5,
+        alignItems: 'center',
+        mb: 2.5,
+      }}>
+        <TextField placeholder="Search invoice #, customer, booking…"
+          size="small" value={search}
+          onChange={(e) => setSearch(e.target.value)}
           InputProps={{ startAdornment: (
-            <InputAdornment position="start"><Search sx={{ fontSize: 18, color: KUKAT.textMuted }} /></InputAdornment>
-          )}} />
-        <TextField select size="small" label="Status" value={status}
-          onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 140 }}>
+            <InputAdornment position="start">
+              <Search sx={{ fontSize: 18, color: KUKAT.textMuted }} />
+            </InputAdornment>
+          )}}
+        />
+        <TextField select size="small" label="Status"
+          value={status} onChange={(e) => setStatus(e.target.value)}
+          sx={{ minWidth: 140 }}>
           {STATUS_FILTERS.map(s => (
-            <MenuItem key={s} value={s} sx={{ textTransform: 'capitalize' }}>{s || 'All statuses'}</MenuItem>
+            <MenuItem key={s} value={s} sx={{ textTransform: 'capitalize' }}>
+              {s || 'All statuses'}
+            </MenuItem>
           ))}
         </TextField>
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <DataTable columns={COLUMNS} rows={invoices} loading={loading} keyField="invoiceID"
+      <DataTable
+        columns={COLUMNS} rows={invoices} loading={loading}
+        keyField="invoiceID"
         onRowClick={(row) => navigate(`/invoices/${row.invoiceID}`)}
-        emptyMessage="No invoices found." />
+        emptyMessage="No invoices found."
+      />
 
-      {/* Add payment drawer */}
+      {/* ── Add payment drawer ───────────────────────────────── */}
       <Drawer anchor="right" open={drawer.open}
         onClose={() => !saving && setDrawer({ open: false, invoiceID: null, total: 0 })}
         PaperProps={{ sx: { width: { xs: '100%', sm: 520 }, p: 3 } }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Box sx={{
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', mb: 3,
+        }}>
           <Box>
             <Typography variant="h5" sx={{ color: KUKAT.navy }}>Record payment</Typography>
             <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>
               Invoice #{drawer.invoiceID} — Total: ${parseFloat(drawer.total || 0).toFixed(2)}
             </Typography>
           </Box>
-          <IconButton onClick={() => setDrawer({ open: false, invoiceID: null, total: 0 })}><Close /></IconButton>
+          <IconButton onClick={() => setDrawer({ open: false, invoiceID: null, total: 0 })}>
+            <Close />
+          </IconButton>
         </Box>
         {saveError && <Alert severity="error" sx={{ mb: 2 }}>{saveError}</Alert>}
-        <AddPaymentForm invoiceID={drawer.invoiceID} totalAmount={drawer.total}
-          onSave={handlePayment} onCancel={() => setDrawer({ open: false })} saving={saving} />
+        <AddPaymentForm
+          invoiceID={drawer.invoiceID}
+          totalAmount={drawer.total}
+          onSave={handlePayment}
+          onCancel={() => setDrawer({ open: false })}
+          saving={saving}
+        />
       </Drawer>
+
     </AppLayout>
-  );
+   );
 }

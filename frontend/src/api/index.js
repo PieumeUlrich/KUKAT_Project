@@ -10,10 +10,10 @@ export const bookingsApi = {
   getGroupMembers: (id)          => api.get(`/bookings/${id}/members`),
   addGroupMember:  (id, data)    => api.post(`/bookings/${id}/members`, data),
   removeMember:    (bookingId, customerID) => api.delete(`/bookings/${bookingId}/members/${customerID}`),
-  getDestinations: () => api.get('/destinations'),
-  getClassTypes:   () => api.get('/class-types'),
-  getBookingFees:  () => api.get('/booking-fees'),
-  getProducts:     () => api.get('/products'),
+  getDestinations: ()            => api.get('/destinations'),
+  getClassTypes:   ()            => api.get('/class-types'),
+  getBookingFees:  ()            => api.get('/booking-fees'),
+  getProducts:     ()            => api.get('/products'),
   getCustomers:    (params = {}) => api.get('/customers', { params: { ...params, limit: 'all' } }),
   confirm:         (id)          => api.put(`/bookings/${id}/confirm`),
   complete:        (id)          => api.put(`/bookings/${id}/complete`),
@@ -77,7 +77,7 @@ export const staffApi = {
   deactivate: (id)          => api.put(`/employees/${id}/deactivate`),
   activate:   (id)          => api.put(`/employees/${id}/activate`),
   getRoles:   ()            => api.get('/roles'),
-  getStats:   (id)          => api.get(`/employees/${id}/stats`),
+  // getStats:   (id)          => api.get(`/employees/${id}/stats`),
 };
 
 export const reportsApi = {
@@ -87,6 +87,8 @@ export const reportsApi = {
   getCommissionReport: (params = {}) => api.get('/reports/commissions',        { params }),
   getTopCustomers:     (params = {}) => api.get('/reports/top-customers',      { params }),
   getTopDestinations:  (params = {}) => api.get('/reports/top-destinations',   { params }),
+  getTopProducts:      (params = {}) => api.get('/reports/top-products',        { params }),
+  getRevenueTrend:     (params = {}) => api.get('/reports/revenue-trend',       { params }),
 };
 
 export const dashboardApi = {
