@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import {
   ArrowBack, Receipt, AttachMoney, Person,
-  Close, Add,
+  Close, Add, Download, Print,
 } from '@mui/icons-material';
 import AppLayout from '../../components/layout/AppLayout';
 import StatusChip from '../../components/common/StatusChip';
@@ -157,6 +157,51 @@ export default function InvoiceDetailPage() {
           sx={{ alignSelf: { xs: 'flex-start', sm: 'auto' } }}>
           Back to invoices
         </Button>
+        {/* Download PDF */}
+        {(['paid', 'partial'].includes(inv.status)) && (
+        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<Download />}
+            onClick={() => {
+              const token = localStorage.getItem('kukat_token');
+              const url = `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/invoices/${id}/pdf`;
+              fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+                .then(res => res.blob())
+                .then(blob => {
+                  const link = document.createElement('a');
+                  link.href = URL.createObjectURL(blob);
+                  link.download = `KUKAT-Invoice-${id}.pdf`;
+                  link.click();
+                  URL.revokeObjectURL(link.href);
+                });
+            }}
+          >
+            Download PDF
+          </Button>
+
+          {/* Print */}
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<Print />}
+            onClick={() => {
+              const token = localStorage.getItem('kukat_token');
+              const url = `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/invoices/${id}/pdf`;
+              fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+                .then(res => res.blob())
+                .then(blob => {
+                  const blobUrl = URL.createObjectURL(blob);
+                  const win = window.open(blobUrl);
+                  win.onload = () => { win.print(); };
+                });
+            }}
+          >
+            Print
+          </Button>
+        </Box>
+        )}
         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
           {inv.status !== 'paid' && inv.status !== 'refunded' && canApprove() && (
             <Button variant="outlined" size="small" color="success"

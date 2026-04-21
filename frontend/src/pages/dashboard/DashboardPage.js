@@ -4,7 +4,7 @@ import {
   Box, Typography, Grid, Card, CardContent, CardHeader,
   Table, TableHead, TableRow, TableCell, TableBody,
   Skeleton, Alert, Chip, Avatar, ToggleButton, ToggleButtonGroup,
-  LinearProgress, Divider,
+  LinearProgress, Button,
 } from '@mui/material';
 import {
   TrendingUp, TrendingDown, BookOnline, People,
@@ -1338,6 +1338,7 @@ export default function DashboardPage() {
 
       {userRole === 'hr' && <HRDashboard data={data} loading={loading} />}
       {userRole === 'accountant' && <AccountantDashboard data={data} loading={loading} />}
+      {userRole === 'agent' && <AgentDashboard data={data} loading={loading} />}
       {['superadmin', 'manager'].includes(userRole) && (
         <AdminDashboard
           bk={bk} inv={inv} comm={comm} cust={cust}
@@ -1351,3 +1352,209 @@ export default function DashboardPage() {
     </AppLayout>
   );
 }
+
+const AgentDashboard = ({ data, loading }) => {
+  const navigate = useNavigate();
+
+  const bookings    = data?.bookings    || {};
+  const commissions = data?.commissions || {};
+  const customers   = data?.customers   || {};
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+
+      {/* ── ROW 1: 4 stat cards ──────────────────────── */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
+        gap: 2,
+      }}>
+        <TopStatCard label="My bookings"    value={fmtShort(bookings.total)}
+          icon={<BookOnline />}     color={KUKAT.navy}
+          trendValue={bookings.thisMonth > 0 ? 8 : 0} loading={loading} />
+        <TopStatCard label="Confirmed"      value={fmtShort(bookings.confirmed)}
+          icon={<CheckCircle />}    color={KUKAT.teal}
+          trendValue={10} loading={loading} />
+        <TopStatCard label="My customers"   value={fmtShort(customers.total)}
+          icon={<People />}         color={CHART_COLORS.amber}
+          trendValue={customers.newThisMonth > 0 ? 5 : 0} loading={loading} />
+        <TopStatCard label="Commissions"    value={fmtK(commissions.totalPaid)}
+          icon={<AccountBalance />} color={CHART_COLORS.purple}
+          trendValue={12} loading={loading} />
+      </Box>
+
+      {/* ── ROW 2: Booking status breakdown ──────────── */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+        gap: 2,
+        alignItems: 'start',
+      }}>
+        <Card>
+          <CardHeader
+            title="My booking status"
+            titleTypographyProps={{ variant: 'h6', sx: { color: KUKAT.navy, fontSize: '1rem' } }}
+          />
+          <CardContent sx={{ pt: 0 }}>
+            <Box sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: 2,
+            }}>
+              {[
+                { label: 'Confirmed', value: bookings.confirmed ?? 0, color: '#15803D', bg: '#DCFCE7' },
+                { label: 'Pending',   value: bookings.pending   ?? 0, color: '#854D0E', bg: '#FEF9C3' },
+                { label: 'Completed', value: bookings.completed ?? 0, color: '#0369A1', bg: '#E0F2FE' },
+                { label: 'Cancelled', value: bookings.cancelled ?? 0, color: '#DC2626', bg: '#FEE2E2' },
+              ].map(s => (
+                <Box key={s.label} sx={{
+                  p: 2, borderRadius: 2,
+                  background: s.bg, textAlign: 'center',
+                }}>
+                  {loading
+                    ? <Skeleton width={40} height={32} sx={{ mx: 'auto' }} />
+                    : <Typography sx={{ fontSize: '1.6rem', fontWeight: 700, color: s.color, lineHeight: 1 }}>
+                        {s.value}
+                      </Typography>
+                  }
+                  <Typography variant="caption" sx={{ color: s.color, fontWeight: 500 }}>
+                    {s.label}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Commission summary */}
+        <Card>
+          <CardHeader
+            title="My commissions"
+            titleTypographyProps={{ variant: 'h6', sx: { color: KUKAT.navy, fontSize: '1rem' } }}
+          />
+          <CardContent sx={{ pt: 0 }}>
+            {[
+              { label: 'Total earned',      value: fmtK(commissions.totalPaid),   color: '#15803D' },
+              { label: 'Pending approval',  value: fmtShort(commissions.pending), color: CHART_COLORS.amber },
+              { label: 'Approved',          value: fmtShort(commissions.approved),color: KUKAT.teal },
+            ].map((item, i) => (
+              <Box key={i} sx={{
+                display: 'flex', justifyContent: 'space-between',
+                alignItems: 'center', py: 1.5,
+                borderBottom: i < 2 ? `1px solid ${KUKAT.border}` : 'none',
+              }}>
+                <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>
+                  {item.label}
+                </Typography>
+                {loading
+                  ? <Skeleton width={60} height={20} />
+                  : <Typography variant="body2" fontWeight={700} sx={{ color: item.color }}>
+                      {item.value}
+                    </Typography>
+                }
+              </Box>
+            ))}
+            <Button
+              size="small" variant="outlined" fullWidth
+              onClick={() => navigate('/commissions')}
+              sx={{ mt: 2 }}
+            >
+              View all commissions →
+            </Button>
+          </CardContent>
+        </Card>
+      </Box>
+
+      {/* ── ROW 3: Recent bookings ────────────────────── */}
+      <Card>
+        <CardHeader
+          title="My recent bookings"
+          titleTypographyProps={{ variant: 'h6', sx: { color: KUKAT.navy, fontSize: '1rem' } }}
+          action={
+            <Typography variant="body2" onClick={() => navigate('/bookings')}
+              sx={{ color: KUKAT.teal, cursor: 'pointer', mt: 0.5,
+                '&:hover': { textDecoration: 'underline' } }}>
+              View all →
+            </Typography>
+          }
+        />
+        <CardContent sx={{ pt: 0 }}>
+          {loading ? <Skeleton variant="rounded" height={200} /> :
+           (data?.recentBookings ?? []).length === 0 ? (
+            <Typography variant="body2"
+              sx={{ color: KUKAT.textMuted, py: 3, textAlign: 'center' }}>
+              No bookings yet.
+            </Typography>
+          ) : (
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Customer</TableCell>
+                  <TableCell>Product</TableCell>
+                  <TableCell>Trip start</TableCell>
+                  <TableCell align="right">Price</TableCell>
+                  <TableCell>Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {(data?.recentBookings ?? []).map((b, i) => (
+                  <TableRow key={b.bookingID}
+                    sx={{ cursor: 'pointer', background: i % 2 === 0 ? '#fff' : KUKAT.surface }}
+                    onClick={() => navigate(`/bookings/${b.bookingID}`)}>
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={600}>{b.customerName}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{b.productName}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {b.tripStart ? new Date(b.tripStart).toLocaleDateString('en-CA') : '—'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography variant="body2" fontWeight={600}>{fmt(b.basePrice)}</Typography>
+                    </TableCell>
+                    <TableCell><StatusChip status={b.status} /></TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── ROW 4: Navy summary card ──────────────────── */}
+      <Card sx={{ background: KUKAT.navy }}>
+        <CardContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+          <Typography variant="caption" sx={{ color: KUKAT.amberLight, fontWeight: 600,
+            textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.7rem' }}>
+            — KUKAT Travel Agency
+          </Typography>
+          <Typography sx={{ color: '#fff', fontSize: '1.1rem', fontWeight: 700, lineHeight: 1.3 }}>
+            Your personal performance overview
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.6)', lineHeight: 1.7 }}>
+            Track your bookings, customers and commission earnings.
+            Contact your manager for performance reviews and targets.
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1.5, mt: 1 }}>
+            <Chip label="New booking →"
+              onClick={() => navigate('/bookings')}
+              sx={{ background: KUKAT.amber, color: KUKAT.navy,
+                fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem',
+                '&:hover': { background: KUKAT.amberLight } }}
+            />
+            <Chip label="My customers →"
+              onClick={() => navigate('/customers')}
+              sx={{ background: 'rgba(255,255,255,0.15)', color: '#fff',
+                fontWeight: 600, cursor: 'pointer', fontSize: '0.8rem',
+                '&:hover': { background: 'rgba(255,255,255,0.25)' } }}
+            />
+          </Box>
+        </CardContent>
+      </Card>
+
+    </Box>
+  );
+};

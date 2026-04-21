@@ -1,5 +1,6 @@
 import { query, sql } from '../config/db.js';
 import { httpError } from '../utils/helpers.js';
+import auditLog from '../utils/audit.js';
 
 // ── Auto-generate invoice when booking is confirmed ────────────
 // Called internally — not a route handler
@@ -81,7 +82,7 @@ const generateCommission = async (invoiceID) => {
   const rate   = parseFloat(commissionRate || 10);
   const amount = parseFloat((parseFloat(basePrice) * (rate / 100)).toFixed(2));
 
-  await query(
+  const newRecord = await query(
     `INSERT INTO commissions
        (bookingID, employeeID, invoiceID, commissionRate, commissionAmount, status)
      VALUES
@@ -93,7 +94,12 @@ const generateCommission = async (invoiceID) => {
       rate:        { type: sql.Decimal, value: rate },
       amount:      { type: sql.Decimal, value: amount },
     }
+    
   );
+  const newCommission = newRecord.recordset[0];
+  await auditLog(req, 'CREATE', 'commissions', newCommission.commissionID, null, {
+    invoiceID, bookingID, rate, amount, status: 'pending'
+  });
 };
 
 // PUT /api/bookings/:id/confirm
@@ -112,6 +118,7 @@ const confirmBooking = async (req, res, next) => {
     // Auto-generate invoice
     const invoiceID = await generateInvoice(bookingID);
 
+    await auditLog(req, 'CONFIRM', 'bookings', id, { status: 'pending' }, { status: 'confirmed' });
     res.json({ message: 'Booking confirmed.', invoiceID });
   } catch (err) { next(err); }
 };
@@ -126,6 +133,7 @@ const completeBooking = async (req, res, next) => {
        WHERE  bookingID = @bookingID AND status = 'confirmed'`,
       { bookingID: { type: sql.Int, value: bookingID } }
     );
+    await auditLog(req, 'COMPLETE', 'bookings', bookingID, { status: 'confirmed' }, { status: 'completed' });
     res.json({ message: 'Booking marked as completed.' });
   } catch (err) { next(err); }
 };
@@ -140,6 +148,7 @@ const cancelBooking = async (req, res, next) => {
        WHERE  bookingID = @bookingID AND status IN ('pending','confirmed')`,
       { bookingID: { type: sql.Int, value: bookingID } }
     );
+    await auditLog(req, 'CANCEL', 'bookings', id, { status: 'pending/confirmed' }, { status: 'cancelled' });
     res.json({ message: 'Booking cancelled.' });
   } catch (err) { next(err); }
 };
@@ -160,6 +169,7 @@ const markInvoicePaid = async (req, res, next) => {
     // Auto-generate commission
     await generateCommission(invoiceID);
 
+    await auditLog(req, 'MARK_PAID', 'invoices', invoiceID, { status: 'unpaid' }, { status: 'paid' });
     res.json({ message: 'Invoice marked as paid. Commission generated.' });
   } catch (err) { next(err); }
 };

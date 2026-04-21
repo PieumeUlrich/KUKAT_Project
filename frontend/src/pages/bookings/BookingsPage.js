@@ -17,6 +17,9 @@ import { bookingsApi } from '../../api/index';
 import { useAuth } from '../../store/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { KUKAT } from '../../styles/theme';
+import { Download } from '@mui/icons-material';
+import exportToCsv from '../../utils/exportCsv';
+
 
 // ── Stat card ─────────────────────────────────────────────────
 const StatCard = ({ label, value, icon, color, loading }) => {
@@ -56,6 +59,19 @@ const COLUMNS = [
   { id: 'status',       label: 'Status',     minWidth: 110, sortable: false,
     render: (v) => <StatusChip status={v} /> },
   { id: 'agentName',    label: 'Agent',      minWidth: 140 },
+];
+
+const CSV_COLUMNS = [
+  { id: 'bookingID',    label: 'Booking ID' },
+  { id: 'customerName', label: 'Customer' },
+  { id: 'agentName',    label: 'Agent' },
+  { id: 'productName',  label: 'Product' },
+  { id: 'destination',  label: 'Destination' },
+  { id: 'bookingDate',  label: 'Booking date' },
+  { id: 'tripStart',    label: 'Trip start' },
+  { id: 'tripEnd',      label: 'Trip end' },
+  { id: 'basePrice',    label: 'Base price' },
+  { id: 'status',       label: 'Status' },
 ];
 
 const STATUS_FILTERS = ['', 'pending', 'confirmed', 'completed', 'cancelled'];
@@ -167,6 +183,15 @@ export default function BookingsPage() {
         <Tooltip title="Refresh">
           <IconButton onClick={refetch} size="small" sx={{ color: KUKAT.textMuted }}>
             <Refresh />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Download CSV">
+          <IconButton
+            onClick={() => exportToCsv('kukat_bookings', bookings, CSV_COLUMNS)}
+            size="small"
+            sx={{ color: KUKAT.textMuted }}
+          >
+            <Download />
           </IconButton>
         </Tooltip>
 

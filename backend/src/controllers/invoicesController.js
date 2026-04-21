@@ -155,6 +155,7 @@ const addPayment = async (req, res, next) => {
         invoiceID: { type: sql.Int,      value: invoiceID },
       }
     );
+    await auditLog(req, 'ADD_PAYMENT', 'payments', newPaymentID, null, req.body);
     res.status(201).json({ message: 'Payment recorded.', invoiceStatus: newStatus });
   } catch (err) { next(err); }
 };
@@ -167,6 +168,7 @@ const markPaid = async (req, res, next) => {
       `UPDATE invoices SET status = 'paid', updatedAt = GETDATE() WHERE invoiceID = @id`,
       { id: { type: sql.Int, value: id } }
     );
+    await auditLog(req, 'MARK_PAID', 'invoices', id, null, { status: 'paid' });
     res.json({ message: 'Invoice marked as paid.' });
   } catch (err) { next(err); }
 };

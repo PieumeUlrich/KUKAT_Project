@@ -18,6 +18,8 @@ import * as products    from '../controllers/productsController.js';
 import * as reports     from '../controllers/reportsController.js';
 import * as dashboard   from '../controllers/dashboardController.js';
 import * as automation  from '../controllers/automationController.js';
+import * as pdf         from '../controllers/pdfController.js';
+import * as audit       from '../controllers/auditController.js';
 
 const router = Router();
 
@@ -56,7 +58,7 @@ router.get ('/customers/:id/cards',    authenticate, authorize(SA, MGR, AGT, HR)
 router.get   ('/bookings/stats',                   authenticate, authorize(SA, MGR, AGT),     bookings.getStats);
 router.get   ('/bookings',                         authenticate, authorize(SA, MGR, AGT),     bookings.getAll);
 router.post  ('/bookings',                         authenticate, authorize(SA, MGR, AGT), bookingValidator, validate, bookings.create);
-router.put   ('/bookings/:id',                     authenticate, authorize(SA, MGR, AGT), bookingValidator, validate, bookings.update);
+router.put   ('/bookings/:id',                     authenticate, authorize(SA, MGR, AGT), bookingValidator, bookings.update);
 router.get   ('/bookings/:id',                     authenticate, authorize(SA, MGR, AGT),     bookings.getById);
 // router.put   ('/bookings/:id',                     authenticate, authorize(SA, MGR, AGT),     bookings.update);
 router.put   ('/bookings/:id/confirm',             authenticate, authorize(SA, MGR, AGT),     automation.confirmBooking);
@@ -70,8 +72,9 @@ router.delete('/bookings/:id/members/:customerID', authenticate, authorize(SA, M
 router.get ('/invoices/stats',         authenticate, authorize(SA, MGR, ACC),     invoices.getStats);
 router.get ('/invoices',               authenticate, authorize(SA, MGR, ACC),     invoices.getAll);
 router.get ('/invoices/:id',           authenticate, authorize(SA, MGR, ACC),     invoices.getById);
-router.post('/invoices/:id/payments', authenticate, authorize(SA, MGR, ACC), paymentValidator, validate, invoices.addPayment);
+router.post('/invoices/:id/payments',  authenticate, authorize(SA, MGR, ACC), paymentValidator, validate, invoices.addPayment);
 router.put ('/invoices/:id/mark-paid', authenticate, authorize(SA, MGR, ACC),     automation.markInvoicePaid);
+router.get('/invoices/:id/pdf',        authenticate, authorize(SA, MGR, ACC, AGT), pdf.generateInvoicePDF);
 
 // ── Commissions ───────────────────────────────────────────────
 router.get ('/commissions/stats',         authenticate, authorize(SA, MGR, AGT, ACC), commissions.getStats);
@@ -79,7 +82,7 @@ router.get ('/commissions',               authenticate, authorize(SA, MGR, AGT, 
 router.get ('/commissions/:id',           authenticate, authorize(SA, MGR, AGT, ACC), commissions.getById);
 router.put ('/commissions/:id/approve',   authenticate, authorize(SA, MGR),           commissions.approve);
 router.put ('/commissions/:id/cancel',    authenticate, authorize(SA, MGR),           commissions.cancel);
-router.post('/commissions/:id/payments', authenticate, authorize(SA, ACC), commissionPaymentValidator, validate, commissions.addPayment);
+router.post('/commissions/:id/payments',  authenticate, authorize(SA, ACC), commissionPaymentValidator, validate, commissions.addPayment);
 
 // ── Employees ─────────────────────────────────────────────────
 router.get ('/employees/stats',          authenticate, authorize(SA, MGR, HR),  employees.getStats);
@@ -112,6 +115,9 @@ router.get('/reports/top-destinations', authenticate, authorize(SA, MGR, ACC, HR
 router.get('/reports/top-products',     authenticate, authorize(SA, MGR, ACC, HR), reports.getTopProducts);
 router.get('/reports/commissions',      authenticate, authorize(SA, MGR, ACC),     reports.getCommissionReport);
 router.get('/reports/revenue-trend',    authenticate, authorize(SA, MGR, ACC, HR), reports.getRevenueTrend);
+
+// ── Audit Logs ────────────────────────────────────────────────
+router.get('/audit',              authenticate, authorize(SA, MGR), audit.getAuditLogs);
 
 // ── HR bulk reassign ──────────────────────────────────────────
 router.post('/hr/reassign-clients', authenticate, authorize(SA, HR), async (req, res, next) => {

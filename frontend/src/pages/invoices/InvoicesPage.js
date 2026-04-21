@@ -1,16 +1,16 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Button, TextField, MenuItem, Grid, Card, CardContent,
-  Typography, Drawer, IconButton, InputAdornment, Alert,
-  Divider, CircularProgress,
+  Box, Button, TextField, MenuItem, Card, CardContent, Tooltip,
+  Typography, Drawer, IconButton, InputAdornment, Alert, CircularProgress,
 } from '@mui/material';
-import { Add, Search, Close, Receipt, AttachMoney, HourglassEmpty, CheckCircle, Cancel } from '@mui/icons-material';
+import { Download, Search, Close, Receipt, AttachMoney, HourglassEmpty, CheckCircle, Cancel } from '@mui/icons-material';
 import AppLayout from '../../components/layout/AppLayout';
 import DataTable from '../../components/common/DataTable';
 import StatusChip from '../../components/common/StatusChip';
 import { useInvoices, useInvoiceStats } from '../../hooks/useModules';
 import { invoicesApi } from '../../api/index';
+import exportToCsv from '../../utils/exportCsv';
 import { KUKAT } from '../../styles/theme';
 
 function StatCard({ label, value, icon, color, loading, prefix = '' }) {
@@ -50,6 +50,16 @@ const COLUMNS = [
     ) : '—' },
   { id: 'status',      label: 'Status',    minWidth: 110, sortable: false,
     render: (v) => <StatusChip status={v} /> },
+];
+
+const CSV_COLUMNS = [
+  { id: 'invoiceID',     label: 'Invoice ID' },
+  { id: 'customerName',  label: 'Customer' },
+  { id: 'bookingID',     label: 'Booking ID' },
+  { id: 'invoiceDate',   label: 'Invoice date' },
+  { id: 'dueDate',       label: 'Due date' },
+  { id: 'totalAmount',   label: 'Total amount' },
+  { id: 'status',        label: 'Status' },
 ];
 
 // ── Add payment form ──────────────────────────────────────────
@@ -160,7 +170,7 @@ export default function InvoicesPage() {
       {/* ── Search + filters ─────────────────────────────────── */}
       <Box sx={{
         display: 'grid',
-        gridTemplateColumns: { xs: '1fr', sm: '1fr auto' },
+        gridTemplateColumns: { xs: '1fr', sm: '1fr auto auto' },
         gap: 1.5,
         alignItems: 'center',
         mb: 2.5,
@@ -174,6 +184,16 @@ export default function InvoicesPage() {
             </InputAdornment>
           )}}
         />
+        <Tooltip title="Export current view to CSV">
+          <IconButton
+            onClick={() => exportToCsv('kukat_invoices', invoices, CSV_COLUMNS)}
+            size="small"
+            sx={{ color: KUKAT.textMuted }}
+            title="Export to CSV"
+          >
+            <Download />
+          </IconButton>
+        </Tooltip>
         <TextField select size="small" label="Status"
           value={status} onChange={(e) => setStatus(e.target.value)}
           sx={{ minWidth: 140 }}>

@@ -23,6 +23,8 @@ import HRPage             from './pages/hr/HRPage';
 import InvoiceDetailPage     from './pages/invoices/InvoiceDetailPage';
 import CommissionDetailPage  from './pages/commissions/CommissionDetailPage';
 import ChangePasswordPage    from './pages/auth/ChangePasswordPage';
+import AuditPage from './pages/admin/AuditPage';
+
 
 const { SUPERADMIN, MANAGER, AGENT, ACCOUNTANT, HR } = ROLES;
 
@@ -33,6 +35,15 @@ const App = () => {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
+
+            {/* Audit Log route — superadmin and manager only:*/}
+            <Route path="/audit" element={
+              <ProtectedRoute roles={[SUPERADMIN, MANAGER]}>
+                <AuditPage />
+              </ProtectedRoute>
+            } />
+
+            {/* Public routes: */}
             <Route path="/login"        element={<LoginPage />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
             <Route path="/"             element={<Navigate to="/dashboard" replace />} />

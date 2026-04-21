@@ -18,6 +18,7 @@ export const bookingsApi = {
   confirm:         (id)          => api.put(`/bookings/${id}/confirm`),
   complete:        (id)          => api.put(`/bookings/${id}/complete`),
   cancel:          (id)          => api.put(`/bookings/${id}/cancel`),
+  getCustomerById: (id)          => api.get(`/customers/${id}`),
 };
 
 export const customersApi = {

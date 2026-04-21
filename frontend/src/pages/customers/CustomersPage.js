@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Button, TextField, MenuItem, Grid, Card, CardContent,
+  Box, Button, TextField, Card, CardContent, Tooltip,
   Typography, Drawer, IconButton, InputAdornment, Alert, Avatar,
 } from '@mui/material';
 import { Add, Search, Refresh, Close, People, PersonAdd, SwapHoriz } from '@mui/icons-material';
@@ -10,8 +10,10 @@ import DataTable from '../../components/common/DataTable';
 import CustomerForm from './CustomerForm';
 import { useCustomers, useCustomerStats } from '../../hooks/useModules';
 import { customersApi } from '../../api/index';
-import { useAuth, ROLES } from '../../store/AuthContext';
+import { useAuth } from '../../store/AuthContext';
 import { KUKAT } from '../../styles/theme';
+import exportToCsv from '../../utils/exportCsv';
+import { Download } from '@mui/icons-material';
 
 const StatCard = ({ label, value, icon, color, loading }) => {
   return (
@@ -50,6 +52,18 @@ const COLUMNS = [
   { id: 'homePhone',    label: 'Phone',    minWidth: 130 },
   { id: 'agentName',    label: 'Agent',    minWidth: 150 },
   { id: 'bookingCount', label: 'Bookings', minWidth: 90, align: 'center' },
+];
+
+const CSV_COLUMNS = [
+  { id: 'customerID',   label: 'Customer ID' },
+  { id: 'firstName',    label: 'First name' },
+  { id: 'lastName',     label: 'Last name' },
+  { id: 'email',        label: 'Email' },
+  { id: 'homePhone',    label: 'Home phone' },
+  { id: 'city',         label: 'City' },
+  { id: 'province',     label: 'Province' },
+  { id: 'country',      label: 'Country' },
+  { id: 'agentName',    label: 'Assigned agent' },
 ];
 
 const CustomersPage = () => {
@@ -116,9 +130,23 @@ const CustomersPage = () => {
             ),
           }}
         />
-        <IconButton onClick={refetch} size="small" sx={{ color: KUKAT.textMuted }}>
-          <Refresh />
-        </IconButton>
+        <Box>
+          <Tooltip title="Refresh">
+            <IconButton onClick={refetch} size="small" sx={{ color: KUKAT.textMuted }}>
+              <Refresh />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Export to CSV">
+            <IconButton
+              onClick={() => exportToCsv('kukat_customers', customers, CSV_COLUMNS)}
+              size="small"
+              sx={{ color: KUKAT.textMuted }}
+              title="Export to CSV"
+            >
+              <Download />
+            </IconButton>
+          </Tooltip>
+        </Box>
         <Button variant="contained" startIcon={<Add />}
           onClick={() => { setSaveError(''); setDrawerOpen(true); }}>
           New customer

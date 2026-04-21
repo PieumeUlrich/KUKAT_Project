@@ -1,5 +1,6 @@
 import { query, sql } from '../config/db.js';
 import { buildSearch, paginate, paginated, httpError } from '../utils/helpers.js';
+import auditLog from '../utils/audit.js';
 
 // GET /api/bookings/stats
 const getStats = async (req, res, next) => {
@@ -187,6 +188,7 @@ const create = async (req, res, next) => {
         }
       );
     }
+    await auditLog(req, 'CREATE', 'bookings', bookingID, null, req.body);
     res.status(201).json({ bookingID, message: 'Booking created.' });
   } catch (err) { next(err); }
 };
@@ -200,6 +202,17 @@ const update = async (req, res, next) => {
       tripStart, tripEnd, numberOfTravellers, description,
       basePrice, taxRate, status, isGroupBooking, groupName,
     } = req.body;
+
+    // ← Fetch old record BEFORE updating
+    const oldResult = await query(
+      `SELECT productID, destinationID, classID, feeID, bookingDate,
+              tripStart, tripEnd, numberOfTravellers, description,
+              basePrice, taxRate, status, isGroupBooking, groupName
+       FROM bookings WHERE bookingID = @id`,
+      { id: { type: sql.Int, value: id } }
+    );
+    const oldRecord = oldResult.recordset[0] ?? null;
+
     await query(
       `UPDATE bookings SET
          productID = @productID, destinationID = @destinationID,
@@ -227,10 +240,11 @@ const update = async (req, res, next) => {
         groupName:          { type: sql.NVarChar, value: groupName      || null },
       }
     );
+
+    await auditLog(req, 'UPDATE', 'bookings', id, oldRecord, req.body);
     res.json({ message: 'Booking updated.' });
   } catch (err) { next(err); }
 };
-
 // GET /api/bookings/:id/members
 const getMembers = async (req, res, next) => {
   try {

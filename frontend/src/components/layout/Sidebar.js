@@ -19,6 +19,7 @@ import {
   Logout as LogoutIcon,
   Settings as SettingsIcon,
   LockOutlined as LockOutlinedIcon,
+  History,
 } from '@mui/icons-material';
 import { useAuth, ROLES } from '../../store/AuthContext';
 import { KUKAT } from '../../styles/theme';
@@ -88,6 +89,12 @@ const NAV_ITEMS = [
   path:  '/change-password',
   roles: Object.values(ROLES),
 },
+  { 
+    label: 'Audit log', 
+    icon: <History />, 
+    path: '/audit', 
+    roles: [ROLES.SUPERADMIN, ROLES.MANAGER]
+  }
 ];
 
 // ── Role badge config ─────────────────────────────────────────

@@ -1,5 +1,6 @@
 import { query, sql } from '../config/db.js';
 import { buildSearch, paginate, paginated, httpError } from '../utils/helpers.js';
+import auditLog from '../utils/audit.js';
 
 // GET /api/commissions/stats
 const getStats = async (req, res, next) => {
@@ -119,6 +120,7 @@ const approve = async (req, res, next) => {
         approver: { type: sql.Int, value: req.user.employeeID },
       }
     );
+    await auditLog(req, 'APPROVE', 'commissions', id, null, { status: 'approved' });
     res.json({ message: 'Commission approved.' });
   } catch (err) { next(err); }
 };

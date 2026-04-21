@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  Box, Grid, TextField, MenuItem, Button, Typography,
+  Box, TextField, MenuItem, Button, Typography,
   Divider, Switch, FormControlLabel, Autocomplete,
   CircularProgress, Alert, InputAdornment, IconButton,
   Table, TableHead, TableRow, TableCell, TableBody, Chip,
@@ -11,6 +11,11 @@ import { bookingsApi } from '../../api/index';
 import { KUKAT } from '../../styles/theme';
 
 const STATUSES = ['pending', 'confirmed', 'completed', 'cancelled'];
+
+const toDateInput = (val) => {
+  if (!val) return '';
+  return new Date(val).toISOString().slice(0, 10);
+};
 
 const EMPTY = {
   customerID: null, productID: null, destinationID: '',
@@ -23,24 +28,73 @@ const EMPTY = {
 const BookingForm = ({ initial = {}, onSave, onCancel, saving }) => {
   const { destinations, classTypes, fees, products, loading: refLoading } = useBookingFormData();
 
-  const [form,          setForm]          = useState({ ...EMPTY, ...initial });
-  const [customerQuery, setCustQuery]     = useState('');
-  const [customers,     setCustomers]     = useState([]);
-  const [custLoading,   setCustLoading]   = useState(false);
-  const [members,       setMembers]       = useState(initial.members || []);
-  const [memberQuery,   setMemberQuery]   = useState('');
-  const [memberOptions, setMemberOptions] = useState([]);
-  const [errors,        setErrors]        = useState({});
+const [form, setForm] = useState({
+  ...EMPTY,
+  ...initial,
+  // ← Format dates so they display correctly in date inputs
+  bookingDate: toDateInput(initial?.bookingDate),
+  tripStart:   toDateInput(initial?.tripStart),
+  tripEnd:     toDateInput(initial?.tripEnd),
+});
+const [customerQuery, setCustQuery]     = useState('');
+const [customers,     setCustomers]     = useState([]);
+const [custLoading,   setCustLoading]   = useState(false);
+const [members,       setMembers]       = useState(initial.members || []);
+const [memberQuery,   setMemberQuery]   = useState('');
+const [memberOptions, setMemberOptions] = useState([]);
+const [errors,        setErrors]        = useState({});
+const [selectedCustomer, setSelectedCustomer] = useState(
+  initial?.customerID && initial?.customerFirstName
+    ? { 
+        customerID: initial.customerID,
+        firstName:  initial.customerFirstName,
+        lastName:   initial.customerLastName,
+        email:      initial.customerEmail || '',
+      }
+    : null
+);
 
-  // Customer search (lead)
-  useEffect(() => {
-    if (!customerQuery || customerQuery.length < 2) { setCustomers([]); return; }
-    setCustLoading(true);
-    bookingsApi.getCustomers({ search: customerQuery, limit: 'all' })
-      .then(({ data }) => setCustomers(data.customers ?? data.data ?? data))
-      .catch(() => {})
-      .finally(() => setCustLoading(false));
-  }, [customerQuery]);
+useEffect(() => {
+  if (initial?.customerID && customers.length > 0 && !selectedCustomer) {
+    const found = customers.find(c => c.customerID === initial.customerID);
+    if (found) setSelectedCustomer(found);
+  }
+}, [customers]);
+
+
+  // Pre-load existing customer when editing
+useEffect(() => {
+  if (!customerQuery || customerQuery.length < 2) {
+    if (!form.customerID) setCustomers([]);
+    return;
+  }
+  setCustLoading(true);
+  bookingsApi.getCustomers({ search: customerQuery, limit: 'all' })
+    .then(({ data }) => {
+      const list = data.customers ?? data.data ?? data;
+      setCustomers(Array.isArray(list) ? list : []);
+    })
+    .catch(() => {})
+    .finally(() => setCustLoading(false));
+}, [customerQuery]);
+
+const preloaded = useRef(false);
+
+useEffect(() => {
+  if (!initial?.customerID || preloaded.current) return;
+  preloaded.current = true;
+  setCustLoading(true);
+  bookingsApi.getCustomers({ search: '', limit: 'all' })
+    .then(({ data }) => {
+      const list = data.customers ?? data.data ?? data;
+      if (Array.isArray(list)) {
+        const found = list.find(c => c.customerID === initial.customerID);
+        if (found) setCustomers([found]);
+      }
+    })
+    .catch(() => {})
+    .finally(() => setCustLoading(false));
+}, [initial?.customerID]);
 
   // Group member search
   useEffect(() => {
@@ -106,9 +160,13 @@ const BookingForm = ({ initial = {}, onSave, onCancel, saving }) => {
           options={customers}
           loading={custLoading}
           getOptionLabel={(o) => `${o.firstName} ${o.lastName} — ${o.email || o.city || ''}`}
-          value={customers.find((c) => c.customerID === form.customerID) || null}
-          onInputChange={(_, v) => setCustQuery(v)}
+          value={selectedCustomer}
+          onInputChange={(_, v, reason) => {
+            if (reason === 'input') setCustQuery(v);
+
+          }}
           onChange={(_, v) => {
+            setSelectedCustomer(v);
             setForm((f) => ({ ...f, customerID: v?.customerID || null }));
             setErrors((e) => ({ ...e, customerID: '' }));
           }}

@@ -2,13 +2,21 @@ import React, { useState } from 'react';
 import { Box, Grid, TextField, Button, Divider, Typography, CircularProgress } from '@mui/material';
 import { KUKAT } from '../../styles/theme';
 
+const toDateInput = (val) => {
+  if (!val) return '';
+  return new Date(val).toISOString().slice(0, 10);
+};
+
 const EMPTY = {
   firstName: '', lastName: '', email: '', homePhone: '', businessPhone: '',
   birthDate: '', address: '', city: '', postalCode: '', province: '', country: 'Canada', notes: '',
 };
 
 export default function CustomerForm({ initial = {}, onSave, onCancel, saving }) {
-  const [form,   setForm]   = useState({ ...EMPTY, ...initial });
+  const [form, setForm] = useState({
+    ...initial,
+    birthDate: toDateInput(initial?.birthDate),
+  });  
   const [errors, setErrors] = useState({});
 
   const set = (f) => (e) => { setForm(p => ({ ...p, [f]: e.target.value })); setErrors(p => ({ ...p, [f]: '' })); };

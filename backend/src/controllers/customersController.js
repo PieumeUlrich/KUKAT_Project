@@ -1,5 +1,6 @@
 import { query, sql } from '../config/db.js';
 import { buildSearch, paginate, paginated, httpError } from '../utils/helpers.js';
+import auditLog from '../utils/audit.js';
 
 // GET /api/customers/stats
 const getStats = async (req, res, next) => {
@@ -153,6 +154,8 @@ const create = async (req, res, next) => {
         notes:         { type: sql.NVarChar, value: notes          || null },
       }
     );
+    const newID = result.recordset[0].customerID;
+    await auditLog(req, 'CREATE', 'customers', newID, null, req.body);
     res.status(201).json({ customerID: result.recordset[0].customerID, message: 'Customer created.' });
   } catch (err) { next(err); }
 };
@@ -165,6 +168,15 @@ const update = async (req, res, next) => {
       firstName, lastName, email, homePhone, businessPhone,
       birthDate, address, city, postalCode, province, country, notes,
     } = req.body;
+
+    const oldResult = await query(
+      `SELECT firstName, lastName, email, homePhone, businessPhone,
+              address, city, province, postalCode, country, notes
+      FROM customers WHERE customerID = @id`,
+      { id: { type: sql.Int, value: id } }
+    );
+    const oldRecord = oldResult.recordset[0] ?? null;
+
     await query(
       `UPDATE customers SET
          firstName = @firstName, lastName = @lastName, email = @email,
@@ -189,6 +201,7 @@ const update = async (req, res, next) => {
         notes:         { type: sql.NVarChar, value: notes          || null },
       }
     );
+    await auditLog(req, 'UPDATE', 'customers', id, oldRecord, req.body);
     res.json({ message: 'Customer updated.' });
   } catch (err) { next(err); }
 };
@@ -214,6 +227,7 @@ const reassign = async (req, res, next) => {
         id:      { type: sql.Int, value: id },
       }
     );
+    await auditLog(req, 'REASSIGN', 'customers', id, { agentID: check.recordset[0].employeeID }, { agentID: agentID });
     res.json({ message: 'Customer reassigned.' });
   } catch (err) { next(err); }
 };

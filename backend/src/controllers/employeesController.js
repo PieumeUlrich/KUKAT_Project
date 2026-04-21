@@ -52,7 +52,7 @@ const getAll = async (req, res, next) => {
       `SELECT e.employeeID, e.firstName, e.lastName, e.email,
               e.agentCode, e.phoneNumber, e.city, e.province,
               e.postalCode, e.isActive, e.hireDate, e.createdAt,
-              r.roleName, r.roleID
+              r.roleName, r.roleID, e.address1
        FROM   employees e
        JOIN   roles r ON r.roleID = e.roleID
        ${where}
@@ -131,7 +131,9 @@ const create = async (req, res, next) => {
         hireDate:    { type: sql.Date,     value: hireDate     || null },
       }
     );
-    res.status(201).json({ employeeID: result.recordset[0].employeeID, message: 'Employee created.' });
+    const newID = result.recordset[0].employeeID;
+    await auditLog(req, 'CREATE', 'employees', newID, null, { ...req.body, password: '[REDACTED]' });
+    res.status(201).json({ employeeID: newID, message: 'Employee created.' });
   } catch (err) { next(err); }
 };
 
@@ -184,6 +186,7 @@ const deactivate = async (req, res, next) => {
       `UPDATE employees SET isActive = 0, updatedAt = GETDATE() WHERE employeeID = @id`,
       { id: { type: sql.Int, value: id } }
     );
+    await auditLog(req, 'DEACTIVATE', 'employees', id, null, false );
     res.json({ message: 'Employee deactivated.' });
   } catch (err) { next(err); }
 };
@@ -196,6 +199,7 @@ const activate = async (req, res, next) => {
       `UPDATE employees SET isActive = 1, updatedAt = GETDATE() WHERE employeeID = @id`,
       { id: { type: sql.Int, value: id } }
     );
+    await auditLog(req, 'ACTIVATE', 'employees', id, null, true );
     res.json({ message: 'Employee activated.' });
   } catch (err) { next(err); }
 };

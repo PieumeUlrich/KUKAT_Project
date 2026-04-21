@@ -3,6 +3,7 @@ import jwt    from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { query, sql } from '../config/db.js';
 import { httpError }  from '../utils/helpers.js';
+import auditLog from '../utils/audit.js';
 
 // POST /api/auth/login
 const login = async (req, res, next) => {
@@ -71,7 +72,10 @@ const login = async (req, res, next) => {
 
     const { passwordHash, roleID, failedPasswordAttempts,
             lastFailedAttempt, ...safeUser } = user;
-
+    await auditLog(req, 'LOGIN', 'employees', user.employeeID, null, { email }, {
+      employeeID:   user.employeeID,
+      employeeName: `${user.firstName} ${user.lastName}`,
+    });
     res.json({ token, refreshToken, user: safeUser });
   } catch (err) { next(err); }
 };
@@ -85,6 +89,7 @@ const logout = async (req, res, next) => {
        WHERE employeeID = @id`,
       { id: { type: sql.Int, value: req.user.employeeID } }
     );
+    await auditLog(req, 'LOGOUT', 'employees', req.user.employeeID, null, null);
     res.json({ message: 'Logged out.' });
   } catch (err) { next(err); }
 };
@@ -187,6 +192,7 @@ const changePassword = async (req, res, next) => {
         id:   { type: sql.Int,      value: req.user.employeeID },
       }
     );
+    await auditLog(req, 'CHANGE_PASSWORD', 'employees', req.user.employeeID, null, null);
     res.json({ message: 'Password updated.' });
   } catch (err) { next(err); }
 };

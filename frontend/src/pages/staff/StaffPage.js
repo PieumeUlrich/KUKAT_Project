@@ -55,22 +55,36 @@ const COLUMNS = [
     )},
 ];
 
+const toDateInput = (val) => {
+  if (!val) return '';
+  try { return new Date(val).toISOString().slice(0, 10); }
+  catch { return ''; }
+};
+
 // ── Staff Form ─────────────────────────────────────────────────
 const StaffForm = ({ initial = {}, onSave, onCancel, saving }) => {
-  const [form,   setForm]   = useState({
+  const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', agentCode: '', phoneNumber: '',
-    address1: '', city: '', province: '', postalCode: '', country: 'Canada',
-    roleID: '', hireDate: '', isActive: true, password: '',
+    city: '', province: '', postalCode: '', country: 'Canada',
+    roleID: '', isActive: true, password: '',
     ...initial,
+    hireDate: toDateInput(initial?.hireDate),
+    address1: initial?.address1 || '',
   });
   const [roles,  setRoles]  = useState([]);
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    staffApi.getRoles().then(({ data }) => setRoles(Array.isArray(data) ? data : (data.roles ?? []))).catch(() => {});
+    staffApi.getRoles()
+      .then(({ data }) => setRoles(Array.isArray(data) ? data : (data.roles ?? [])))
+      .catch(() => {});
   }, []);
 
-  const set = (f) => (e) => { setForm(p => ({ ...p, [f]: e.target.value })); setErrors(p => ({ ...p, [f]: '' })); };
+  const set = (f) => (e) => {
+    setForm(p => ({ ...p, [f]: e.target.value }));
+    setErrors(p => ({ ...p, [f]: '' }));
+  };
+
   const isEdit = !!initial?.employeeID;
 
   const validate = () => {
@@ -170,7 +184,7 @@ const StaffForm = ({ initial = {}, onSave, onCancel, saving }) => {
 
     </Box>
   );
-}
+};
 
 // ── Staff Page ─────────────────────────────────────────────────
 export default function StaffPage() {
@@ -181,13 +195,14 @@ export default function StaffPage() {
   const [saving,     setSaving]     = useState(false);
   const [saveError,  setSaveError]  = useState('');
 
-  const { staff, loading, error, refetch } = useStaff({ search, role });
+  const { staff,   loading,      error,   refetch } = useStaff({ search, role });
+  const { stats: globalStats, loading: statsLoading } = useStaffStats();
   const safeStaff = staff ?? [];
 
   const totals = {
-    total:  safeStaff.length,
-    active: safeStaff.filter(s => s.isActive).length,
-    agents: safeStaff.filter(s => s.roleName === 'agent').length,
+    total:  globalStats?.total  ?? safeStaff.length,
+    active: globalStats?.active ?? safeStaff.filter(s => s.isActive).length,
+    agents: globalStats?.agents ?? safeStaff.filter(s => s.roleName === 'agent').length,
   };
 
   const handleSave = useCallback(async (data) => {
@@ -213,9 +228,9 @@ export default function StaffPage() {
         mb: 3,
       }}>
         {[
-          { label: 'Total staff', value: totals.total,  color: KUKAT.navy,   icon: <ManageAccounts sx={{ fontSize: 28, color: KUKAT.navy }} /> },
-          { label: 'Active',      value: totals.active, color: '#15803D',    icon: <CheckCircle    sx={{ fontSize: 28, color: '#15803D' }} /> },
-          { label: 'Agents',      value: totals.agents, color: KUKAT.teal,   icon: <SupportAgent   sx={{ fontSize: 28, color: KUKAT.teal }} /> },
+          { label: 'Total staff', value: totals.total,  color: KUKAT.navy,  icon: <ManageAccounts sx={{ fontSize: 28, color: KUKAT.navy }} /> },
+          { label: 'Active',      value: totals.active, color: '#15803D',   icon: <CheckCircle    sx={{ fontSize: 28, color: '#15803D' }} /> },
+          { label: 'Agents',      value: totals.agents, color: KUKAT.teal,  icon: <SupportAgent   sx={{ fontSize: 28, color: KUKAT.teal }} /> },
         ].map(s => (
           <Card key={s.label}>
             <CardContent sx={{ p: '16px !important' }}>
@@ -229,7 +244,7 @@ export default function StaffPage() {
                 </Box>
               </Box>
               <Typography sx={{ fontSize: '1.45rem', fontWeight: 700, color: s.color }}>
-                {loading ? '…' : s.value}
+                {loading || statsLoading ? '…' : s.value}
               </Typography>
               <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>{s.label}</Typography>
             </CardContent>
