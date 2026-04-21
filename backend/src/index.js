@@ -20,7 +20,7 @@ app.use(helmet());
 app.use(cors({
   origin:      [
     process.env.CORS_ORIGIN || 'http://localhost:3000',
-    'https://kukat-project1.onrender.com',
+    'https://gentle-dune-0c77f661e.7.azurestaticapps.net',
   ],
   credentials: true,
   methods:     ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
