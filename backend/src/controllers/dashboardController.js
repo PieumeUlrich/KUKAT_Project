@@ -242,6 +242,63 @@ const getDashboard = async (req, res, next) => {
       ];
       queryNames = ['financialOverview', 'paymentMethods', 'commissionPayments', 'revenueTrend', 'outstandingInvoices'];
     }
+    
+    else if (userRole === 'agent') {
+      queries = [
+        // Booking KPIs — filtered by agent
+        query(`
+          SELECT
+            COUNT(*)                                                              AS total,
+            SUM(CASE WHEN status = 'confirmed'  THEN 1 ELSE 0 END)              AS confirmed,
+            SUM(CASE WHEN status = 'pending'    THEN 1 ELSE 0 END)              AS pending,
+            SUM(CASE WHEN status = 'completed'  THEN 1 ELSE 0 END)              AS completed,
+            SUM(CASE WHEN status = 'cancelled'  THEN 1 ELSE 0 END)              AS cancelled,
+            ISNULL(SUM(CASE WHEN status != 'cancelled' THEN basePrice ELSE 0 END), 0) AS totalRevenue,
+            SUM(CASE WHEN MONTH(bookingDate) = MONTH(GETDATE())
+                      AND YEAR(bookingDate)  = YEAR(GETDATE()) THEN 1 ELSE 0 END) AS thisMonth
+          FROM bookings b
+          WHERE b.employeeID = ${empID}
+          AND b.bookingDate BETWEEN '${start.toISOString().split('T')[0]}' AND '${end.toISOString().split('T')[0]}'`
+        ),
+
+        // Commission KPIs — filtered by agent
+        query(`
+          SELECT
+            COUNT(*)                                                                        AS total,
+            SUM(CASE WHEN status = 'pending'  THEN 1 ELSE 0 END)                          AS pending,
+            SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END)                          AS approved,
+            SUM(CASE WHEN status = 'paid'     THEN 1 ELSE 0 END)                          AS paid,
+            ISNULL(SUM(CASE WHEN status = 'paid'    THEN commissionAmount ELSE 0 END), 0) AS totalPaid,
+            ISNULL(SUM(CASE WHEN status = 'pending' THEN commissionAmount ELSE 0 END), 0) AS totalPending
+          FROM commissions c
+          WHERE c.employeeID = ${empID}`
+        ),
+
+        // Customer KPIs — filtered by agent
+        query(`
+          SELECT
+            COUNT(*) AS total,
+            SUM(CASE WHEN MONTH(createdAt) = MONTH(GETDATE())
+                      AND YEAR(createdAt)  = YEAR(GETDATE()) THEN 1 ELSE 0 END) AS newThisMonth
+          FROM customers
+          WHERE assignedAgentID = ${empID}`
+        ),
+
+        // Recent bookings — filtered by agent
+        query(`
+          SELECT TOP 8
+            b.bookingID, b.bookingDate, b.status, b.basePrice, b.tripStart,
+            c.firstName + ' ' + c.lastName AS customerName,
+            p.productName
+          FROM   bookings  b
+          JOIN   customers c ON c.customerID = b.customerID
+          JOIN   products  p ON p.productID  = b.productID
+          WHERE  b.employeeID = ${empID}
+          ORDER  BY b.bookingDate DESC`
+        ),
+      ];
+      queryNames = ['bookingStats', 'commissionStats', 'customerStats', 'recentBookings'];
+    }
 
     const results = await Promise.all(queries);
 
@@ -274,6 +331,15 @@ const getDashboard = async (req, res, next) => {
         commissionPayments:   results[2].recordset[0],
         revenueTrend:         results[3].recordset,
         outstandingInvoices:  results[4].recordset,
+      };
+    }
+
+    else if (userRole === 'agent') {
+      response = {
+        bookings:       results[0].recordset[0],
+        commissions:    results[1].recordset[0],
+        customers:      results[2].recordset[0],
+        recentBookings: results[3].recordset,
       };
     }
 

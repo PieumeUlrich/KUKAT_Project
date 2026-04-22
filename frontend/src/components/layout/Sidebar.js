@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, List, ListItemButton, ListItemIcon, ListItemText,
-  Typography, Divider, Tooltip, Avatar, Chip,
+  Typography, Divider, Tooltip, Avatar, Chip, IconButton,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -17,116 +17,59 @@ import {
   FlightTakeoff as FlightIcon,
   ChevronLeft, ChevronRight,
   Logout as LogoutIcon,
-  Settings as SettingsIcon,
   LockOutlined as LockOutlinedIcon,
   History,
+  Close,
 } from '@mui/icons-material';
 import { useAuth, ROLES } from '../../store/AuthContext';
 import { KUKAT } from '../../styles/theme';
 
-export const SIDEBAR_WIDTH       = 240;
-export const SIDEBAR_WIDTH_MINI  = 68;
+export const SIDEBAR_WIDTH      = 240;
+export const SIDEBAR_WIDTH_MINI = 68;
 
-// ── Nav items — visible per role ──────────────────────────────
 const NAV_ITEMS = [
-  {
-    label: 'Dashboard',
-    icon: <DashboardIcon />,
-    path: '/dashboard',
-    roles: Object.values(ROLES),
-  },
-  {
-    label: 'Bookings',
-    icon: <BookingsIcon />,
-    path: '/bookings',
-    roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.AGENT],
-  },
-  {
-    label: 'Customers',
-    icon: <CustomersIcon />,
-    path: '/customers',
-    roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.HR],
-  },
-  {
-    label: 'Packages',
-    icon: <PackagesIcon />,
-    path: '/packages',
-    roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.AGENT],
-  },
-  {
-    label: 'Invoices',
-    icon: <InvoicesIcon />,
-    path: '/invoices',
-    roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.ACCOUNTANT],
-  },
-  {
-    label: 'Commissions',
-    icon: <CommissionsIcon />,
-    path: '/commissions',
-    roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.ACCOUNTANT],
-  },
-  {
-    label: 'Reports',
-    icon: <ReportsIcon />,
-    path: '/reports',
-    roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.ACCOUNTANT, ROLES.HR],
-  },
-  {
-    label: 'Staff',
-    icon: <StaffIcon />,
-    path: '/staff',
-    roles: [ROLES.SUPERADMIN, ROLES.HR],
-  },
-  {
-    label: 'HR',
-    icon: <HRIcon />,
-    path: '/hr',
-    roles: [ROLES.SUPERADMIN, ROLES.HR],
-  },
-  {
-  label: 'Change password',
-  icon:  <LockOutlinedIcon />,
-  path:  '/change-password',
-  roles: Object.values(ROLES),
-},
-  { 
-    label: 'Audit log', 
-    icon: <History />, 
-    path: '/audit', 
-    roles: [ROLES.SUPERADMIN, ROLES.MANAGER]
-  }
+  { label: 'Dashboard',       icon: <DashboardIcon />,   path: '/dashboard',       roles: Object.values(ROLES) },
+  { label: 'Bookings',        icon: <BookingsIcon />,    path: '/bookings',        roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.AGENT] },
+  { label: 'Customers',       icon: <CustomersIcon />,   path: '/customers',       roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.HR] },
+  { label: 'Packages',        icon: <PackagesIcon />,    path: '/packages',        roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.AGENT] },
+  { label: 'Invoices',        icon: <InvoicesIcon />,    path: '/invoices',        roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.ACCOUNTANT] },
+  { label: 'Commissions',     icon: <CommissionsIcon />, path: '/commissions',     roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.ACCOUNTANT] },
+  { label: 'Reports',         icon: <ReportsIcon />,     path: '/reports',         roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.ACCOUNTANT, ROLES.HR] },
+  { label: 'Staff',           icon: <StaffIcon />,       path: '/staff',           roles: [ROLES.SUPERADMIN, ROLES.HR] },
+  { label: 'HR',              icon: <HRIcon />,          path: '/hr',              roles: [ROLES.SUPERADMIN, ROLES.HR] },
+  { label: 'Change password', icon: <LockOutlinedIcon />,path: '/change-password', roles: Object.values(ROLES) },
+  { label: 'Audit log',       icon: <History />,         path: '/audit',           roles: [ROLES.SUPERADMIN, ROLES.MANAGER] },
 ];
 
-// ── Role badge config ─────────────────────────────────────────
 const ROLE_CONFIG = {
-  superadmin:  { label: 'Super Admin', bg: '#0B2B40', color: '#FCD34D' },
-  manager:     { label: 'Manager',     bg: '#7E22CE', color: '#F3E8FF' },
-  agent:       { label: 'Agent',       bg: '#15803D', color: '#DCFCE7' },
-  accountant:  { label: 'Accountant',  bg: '#854D0E', color: '#FEF9C3' },
-  hr:          { label: 'HR',          bg: '#9F1239', color: '#FFE4E6' },
+  superadmin: { label: 'Super Admin', bg: '#0B2B40', color: '#FCD34D' },
+  manager:    { label: 'Manager',     bg: '#7E22CE', color: '#F3E8FF' },
+  agent:      { label: 'Agent',       bg: '#15803D', color: '#DCFCE7' },
+  accountant: { label: 'Accountant',  bg: '#854D0E', color: '#FEF9C3' },
+  hr:         { label: 'HR',          bg: '#9F1239', color: '#FFE4E6' },
 };
 
-export default function Sidebar() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+export default function Sidebar({ onClose }) {
+  const navigate         = useNavigate();
+  const location         = useLocation();
   const { user, logout } = useAuth();
-  const [mini, setMini] = useState(false);
+  const [mini, setMini]  = useState(false);
 
   const width = mini ? SIDEBAR_WIDTH_MINI : SIDEBAR_WIDTH;
 
-  const visibleItems = NAV_ITEMS.filter(
-    (item) => item.roles.includes(user?.role)
-  );
-
-  const isActive = (path) =>
-    location.pathname === path || location.pathname.startsWith(path + '/');
+  const visibleItems = NAV_ITEMS.filter(item => item.roles.includes(user?.role));
+  const isActive     = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
+  const roleConf     = ROLE_CONFIG[user?.role] || ROLE_CONFIG.agent;
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
 
-  const roleConf = ROLE_CONFIG[user?.role] || ROLE_CONFIG.agent;
+  const handleNav = (path) => {
+    navigate(path);
+    if (onClose) onClose(); // ← close sidebar on mobile after navigation
+  };
 
   return (
     <Box sx={{
@@ -140,29 +83,46 @@ export default function Sidebar() {
       flexShrink: 0,
     }}>
 
-      {/* ── Logo ─────────────────────────────────────────────── */}
+      {/* ── Logo + mobile close button ────────────────────────── */}
       <Box sx={{
         display: 'flex', alignItems: 'center',
         gap: 1.5, px: mini ? 1.5 : 2.5, py: 2.5,
         minHeight: 68,
         borderBottom: '1px solid rgba(255,255,255,0.07)',
-        justifyContent: mini ? 'center' : 'flex-start',
+        justifyContent: mini ? 'center' : 'space-between',
       }}>
-        <Box sx={{
-          width: 36, height: 36, borderRadius: '9px', flexShrink: 0,
-          background: `linear-gradient(135deg, ${KUKAT.amber} 0%, ${KUKAT.amberDark} 100%)`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <FlightIcon sx={{ color: KUKAT.navy, fontSize: 18, transform: 'rotate(45deg)' }} />
-        </Box>
-        {!mini && (
-          <Typography sx={{
-            color: '#fff',
-            fontWeight: 700, fontSize: '1.35rem', letterSpacing: '-0.01em',
-            whiteSpace: 'nowrap',
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box sx={{
+            width: 36, height: 36, borderRadius: '9px', flexShrink: 0,
+            background: `linear-gradient(135deg, ${KUKAT.amber} 0%, ${KUKAT.amberDark} 100%)`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            KUKAT
-          </Typography>
+            <FlightIcon sx={{ color: KUKAT.navy, fontSize: 18, transform: 'rotate(45deg)' }} />
+          </Box>
+          {!mini && (
+            <Typography sx={{
+              color: '#fff', fontWeight: 700,
+              fontSize: '1.35rem', letterSpacing: '-0.01em',
+              whiteSpace: 'nowrap',
+            }}>
+              KUKAT
+            </Typography>
+          )}
+        </Box>
+
+        {/* Close button — mobile only */}
+        {!mini && onClose && (
+          <IconButton
+            onClick={onClose}
+            size="small"
+            sx={{
+              color: 'rgba(255,255,255,0.5)',
+              display: { md: 'none' },   // ← hidden on desktop
+              '&:hover': { color: '#fff', background: 'rgba(255,255,255,0.1)' },
+            }}
+          >
+            <Close fontSize="small" />
+          </IconButton>
         )}
       </Box>
 
@@ -172,29 +132,18 @@ export default function Sidebar() {
           {visibleItems.map((item) => {
             const active = isActive(item.path);
             return (
-              <Tooltip
-                key={item.path}
-                title={mini ? item.label : ''}
-                placement="right"
-                arrow
-              >
+              <Tooltip key={item.path} title={mini ? item.label : ''} placement="right" arrow>
                 <ListItemButton
-                  onClick={() => navigate(item.path)}
+                  onClick={() => handleNav(item.path)}
                   sx={{
                     borderRadius: '9px', mb: 0.5,
                     px: mini ? 1.5 : 1.8, py: 1.1,
                     justifyContent: mini ? 'center' : 'flex-start',
                     minHeight: 44,
-                    background: active
-                      ? 'rgba(245,158,11,0.18)'
-                      : 'transparent',
-                    borderLeft: active
-                      ? `3px solid ${KUKAT.amber}`
-                      : '3px solid transparent',
+                    background: active ? 'rgba(245,158,11,0.18)' : 'transparent',
+                    borderLeft: active ? `3px solid ${KUKAT.amber}` : '3px solid transparent',
                     '&:hover': {
-                      background: active
-                        ? 'rgba(245,158,11,0.22)'
-                        : 'rgba(255,255,255,0.06)',
+                      background: active ? 'rgba(245,158,11,0.22)' : 'rgba(255,255,255,0.06)',
                     },
                     transition: 'all 0.15s ease',
                   }}
@@ -228,13 +177,14 @@ export default function Sidebar() {
       {/* ── Bottom: user + collapse ───────────────────────────── */}
       <Box sx={{ borderTop: '1px solid rgba(255,255,255,0.07)', p: mini ? 1 : 1.5 }}>
 
-        {/* Collapse toggle */}
+        {/* Collapse toggle — desktop only */}
         <ListItemButton
           onClick={() => setMini(!mini)}
           sx={{
             borderRadius: '9px', mb: 1,
             px: 1.5, py: 0.8,
             justifyContent: mini ? 'center' : 'flex-end',
+            display: { xs: 'none', md: 'flex' }, // ← hidden on mobile
             '&:hover': { background: 'rgba(255,255,255,0.06)' },
           }}
         >
@@ -276,8 +226,7 @@ export default function Sidebar() {
                 size="small"
                 sx={{
                   height: 16, fontSize: '0.65rem', fontWeight: 600,
-                  backgroundColor: roleConf.bg,
-                  color: roleConf.color,
+                  backgroundColor: roleConf.bg, color: roleConf.color,
                   border: `1px solid ${roleConf.color}30`,
                   '& .MuiChip-label': { px: 1 },
                 }}
@@ -287,7 +236,8 @@ export default function Sidebar() {
               <LogoutIcon
                 onClick={handleLogout}
                 sx={{
-                  fontSize: 16, color: 'rgba(255,255,255,0.4)', cursor: 'pointer',
+                  fontSize: 16, color: 'rgba(255,255,255,0.4)',
+                  cursor: 'pointer',
                   '&:hover': { color: '#EF4444' },
                   transition: 'color 0.15s',
                 }}

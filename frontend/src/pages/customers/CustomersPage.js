@@ -141,7 +141,6 @@ const CustomersPage = () => {
               onClick={() => exportToCsv('kukat_customers', customers, CSV_COLUMNS)}
               size="small"
               sx={{ color: KUKAT.textMuted }}
-              title="Export to CSV"
             >
               <Download />
             </IconButton>

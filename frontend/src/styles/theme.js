@@ -105,11 +105,9 @@ const theme = createTheme({
 
     MuiCssBaseline: {
       styleOverrides: `
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Inter:wght@300;400;500;600;700&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Miranda+Sans:ital,wght@0,400..700;1,400..700&display=swap');
         *, *::before, *::after { box-sizing: border-box; }
         body {
-          font-family: 'Miranda Sans', 'DM Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          font-family: 'DM Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           background-color: ${KUKAT.surface};
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
@@ -145,7 +143,33 @@ const theme = createTheme({
         },
         outlined: {
           borderWidth: '1.5px',
-          '&:hover': { borderWidth: '1.5px' },
+          '&:hover': {
+            borderWidth: '1.5px',
+            backgroundColor: '#F59E0B',
+          },
+        },
+        // Override specific color variants to avoid purple
+        outlinedPrimary: {
+          '&:hover': {
+            backgroundColor: `${KUKAT.amber}`,
+            borderColor: KUKAT.amber,
+            borderWidth: '1.5px',
+          },
+        },
+        outlinedSuccess: {
+          '&:hover': {
+            backgroundColor: '#DCFCE7',
+          },
+        },
+        outlinedError: {
+          '&:hover': {
+            backgroundColor: '#FEE2E2',
+          },
+        },
+        outlinedInfo: {
+          '&:hover': {
+            backgroundColor: '#DBEAFE',
+          },
         },
       },
     },

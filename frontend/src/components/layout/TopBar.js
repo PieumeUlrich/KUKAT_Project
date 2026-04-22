@@ -7,6 +7,7 @@ import {
 import {
   Notifications as NotifIcon,
   Search as SearchIcon,
+  Menu as MenuIcon,
   AccountBalance, Receipt, BookOnline,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -21,7 +22,7 @@ const NOTIF_ICONS = {
   booking_pending:     <BookOnline    sx={{ fontSize: 18, color: KUKAT.amber }} />,
 };
 
-export default function TopBar({ title, subtitle }) {
+export default function TopBar({ title, subtitle, onMenuClick, isMobile }) {
   const { user }                              = useAuth();
   const navigate                              = useNavigate();
   const { notifications, total, loading }     = useNotifications();
@@ -29,17 +30,36 @@ export default function TopBar({ title, subtitle }) {
 
   return (
     <Box sx={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      px: 3, py: 2, background: '#fff',
+      display: 'flex',
+      alignItems: 'center',
+      px: { xs: 2, sm: 3 },
+      py: 1.5,
       borderBottom: `1px solid ${KUKAT.border}`,
-      minHeight: 64, position: 'sticky', top: 0, zIndex: 50,
+      background: '#fff',
+      gap: 1.5,
     }}>
+          {/* Hamburger — mobile only */}
+      {isMobile && (
+        <IconButton
+          onClick={onMenuClick}
+          size="small"
+          sx={{ color: KUKAT.navy, mr: 0.5 }}
+        >
+          <MenuIcon />
+        </IconButton>
+      )}
 
       {/* Page title */}
-      <Box>
-        <Typography variant="h5" sx={{ color: KUKAT.navy, lineHeight: 1.2 }}>{title}</Typography>
+      <Box sx={{ flex: 1 }}>
+        {title && (
+          <Typography variant="h6" sx={{ color: KUKAT.navy, fontWeight: 700, lineHeight: 1 }}>
+            {title}
+          </Typography>
+        )}
         {subtitle && (
-          <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>{subtitle}</Typography>
+          <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>
+            {subtitle}
+          </Typography>
         )}
       </Box>
 
