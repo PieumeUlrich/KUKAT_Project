@@ -7,54 +7,48 @@ export const useBookings = (filters = {}) => {
   const [error,    setError]    = useState(null);
   const [total,    setTotal]    = useState(0);
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
     try {
       const { data } = await bookingsApi.getAll(filters);
-      // Backend returns { bookings: [], total: N }
       const list = data.data ?? data.bookings ?? data;
       setBookings(Array.isArray(list) ? list : []);
-      setTotal(data.total ?? (data.bookings ?? data.data ?? data).length);
+      setTotal(data.total ?? (Array.isArray(list) ? list.length : 0));
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load bookings.');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(filters)]);
 
-  useEffect(() => { fetch(); }, [fetch]);
-
-  return { bookings, loading, error, total, refetch: fetch };
-}
+  useEffect(() => { load(); }, [load]);
+  return { bookings, loading, error, total, refetch: load };
+};
 
 export const useBooking = (id) => {
-  const [booking,  setBooking]  = useState(null);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState(null);
+  const [booking, setBooking] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(null);
 
-  const fetch = useCallback(async () => {
+  const load = useCallback(async () => {
     if (!id) return;
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     try {
       const { data } = await bookingsApi.getById(id);
       setBooking(data);
     } catch (err) {
       setError(err.response?.data?.message || 'Booking not found.');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }, [id]);
 
-  useEffect(() => { fetch(); }, [fetch]);
-
-  return { booking, loading, error, refetch: fetch };
-}
+  useEffect(() => { load(); }, [load]);
+  return { booking, loading, error, refetch: load };
+};
 
 // Reference data for form dropdowns
 export const useBookingFormData = () => {
-  const [data, setData]       = useState({ destinations: [], classTypes: [], fees: [], products: [] });
+  const [data,    setData]    = useState({
+    destinations: [], classTypes: [], fees: [], products: [],
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -74,7 +68,7 @@ export const useBookingFormData = () => {
   }, []);
 
   return { ...data, loading };
-}
+};
 
 export const useBookingStats = () => {
   const [stats,   setStats]   = useState(null);
@@ -82,8 +76,10 @@ export const useBookingStats = () => {
   useEffect(() => {
     bookingsApi.getStats()
       .then(({ data }) => setStats(data))
-      .catch(() => setStats({ total: 0, confirmed: 0, pending: 0, cancelled: 0, completed: 0 }))
+      .catch(() => setStats({
+        total: 0, confirmed: 0, pending: 0, cancelled: 0, completed: 0,
+      }))
       .finally(() => setLoading(false));
   }, []);
   return { stats, loading };
-}
+};

@@ -4,7 +4,10 @@ import {
   Box, Button, TextField, Card, CardContent, Tooltip,
   Typography, Drawer, IconButton, InputAdornment, Alert, Avatar,
 } from '@mui/material';
-import { Add, Search, Refresh, Close, People, PersonAdd, SwapHoriz } from '@mui/icons-material';
+import {
+  Add, Search, Refresh, Close, People, PersonAdd,
+  SwapHoriz, Download,
+} from '@mui/icons-material';
 import AppLayout from '../../components/layout/AppLayout';
 import DataTable from '../../components/common/DataTable';
 import CustomerForm from './CustomerForm';
@@ -13,13 +16,15 @@ import { customersApi } from '../../api/index';
 import { useAuth } from '../../store/AuthContext';
 import { KUKAT } from '../../styles/theme';
 import exportToCsv from '../../utils/exportCsv';
-import { Download } from '@mui/icons-material';
 
-const StatCard = ({ label, value, icon, color, loading }) => {
-  return (
-    <Card><CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: '16px !important' }}>
-      <Box sx={{ width: 44, height: 44, borderRadius: '11px', background: `${color}18`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', color, flexShrink: 0 }}>
+const StatCard = ({ label, value, icon, color, loading }) => (
+  <Card>
+    <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: '16px !important' }}>
+      <Box sx={{
+        width: 44, height: 44, borderRadius: '11px', background: `${color}18`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color, flexShrink: 0,
+      }}>
         {icon}
       </Box>
       <Box>
@@ -28,9 +33,9 @@ const StatCard = ({ label, value, icon, color, loading }) => {
         </Typography>
         <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>{label}</Typography>
       </Box>
-    </CardContent></Card>
-  );
-}
+    </CardContent>
+  </Card>
+);
 
 const COLUMNS = [
   { id: 'customerID',   label: 'ID',       minWidth: 60 },
@@ -55,27 +60,29 @@ const COLUMNS = [
 ];
 
 const CSV_COLUMNS = [
-  { id: 'customerID',   label: 'Customer ID' },
-  { id: 'firstName',    label: 'First name' },
-  { id: 'lastName',     label: 'Last name' },
-  { id: 'email',        label: 'Email' },
-  { id: 'homePhone',    label: 'Home phone' },
-  { id: 'city',         label: 'City' },
-  { id: 'province',     label: 'Province' },
-  { id: 'country',      label: 'Country' },
-  { id: 'agentName',    label: 'Assigned agent' },
+  { id: 'customerID',  label: 'Customer ID' },
+  { id: 'firstName',   label: 'First name' },
+  { id: 'lastName',    label: 'Last name' },
+  { id: 'email',       label: 'Email' },
+  { id: 'homePhone',   label: 'Home phone' },
+  { id: 'city',        label: 'City' },
+  { id: 'province',    label: 'Province' },
+  { id: 'country',     label: 'Country' },
+  { id: 'agentName',   label: 'Assigned agent' },
 ];
 
-const CustomersPage = () => {
+export default function CustomersPage() {
   const navigate = useNavigate();
-  const { isHR, isAdmin, isManager } = useAuth();
+  const { user } = useAuth();
+  const canCreate = ['superadmin', 'manager', 'agent'].includes(user?.role);
+
   const [search,     setSearch]     = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [saving,     setSaving]     = useState(false);
   const [saveError,  setSaveError]  = useState('');
 
   const { customers: rawCustomers, loading, error, total, refetch } = useCustomers({ search });
-  const { stats: globalStats } = useCustomerStats();
+  const { stats: globalStats, loading: statsLoading } = useCustomerStats();
   const customers = rawCustomers ?? [];
 
   const handleCreate = useCallback(async (data) => {
@@ -90,47 +97,38 @@ const CustomersPage = () => {
   }, [refetch]);
 
   return (
-    <AppLayout title="Customers" subtitle={`${total} total customer${total !== 1 ? 's' : ''}`}>
+    <AppLayout title="Customers"
+      subtitle={`${total} total customer${total !== 1 ? 's' : ''}`}>
 
       {/* ── Stat cards ───────────────────────────────────────── */}
       <Box sx={{
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
-        gap: 2,
-        mb: 3,
+        gap: 2, mb: 3,
       }}>
-        <StatCard label="Total customers" value={total}
-          icon={<People />} color={KUKAT.teal} loading={loading} />
-        <StatCard label="New this month"
-          value={globalStats?.newThisMonth ?? 0}
-          icon={<PersonAdd />} color={KUKAT.amber} loading={loading} />
-        <StatCard label="With active bookings"
-          value={globalStats?.withBookings ?? 0}
-          icon={<SwapHoriz />} color={KUKAT.navy} loading={loading} />
+        <StatCard label="Total customers"      value={total}
+          icon={<People />}    color={KUKAT.teal}  loading={loading} />
+        <StatCard label="New this month"        value={globalStats?.newThisMonth ?? 0}
+          icon={<PersonAdd />} color={KUKAT.amber} loading={statsLoading} />
+        <StatCard label="With active bookings"  value={globalStats?.withBookings ?? 0}
+          icon={<SwapHoriz />} color={KUKAT.navy}  loading={statsLoading} />
       </Box>
 
       {/* ── Search + actions ─────────────────────────────────── */}
       <Box sx={{
         display: 'grid',
         gridTemplateColumns: { xs: '1fr auto', sm: '1fr auto auto' },
-        gap: 1.5,
-        alignItems: 'center',
-        mb: 2.5,
+        gap: 1.5, alignItems: 'center', mb: 2.5,
       }}>
-        <TextField
-          placeholder="Search name, email, city…"
-          size="small"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search sx={{ fontSize: 18, color: KUKAT.textMuted }} />
-              </InputAdornment>
-            ),
-          }}
+        <TextField placeholder="Search name, email, city…" size="small"
+          value={search} onChange={(e) => setSearch(e.target.value)}
+          InputProps={{ startAdornment: (
+            <InputAdornment position="start">
+              <Search sx={{ fontSize: 18, color: KUKAT.textMuted }} />
+            </InputAdornment>
+          )}}
         />
-        <Box>
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
           <Tooltip title="Refresh">
             <IconButton onClick={refetch} size="small" sx={{ color: KUKAT.textMuted }}>
               <Refresh />
@@ -139,42 +137,35 @@ const CustomersPage = () => {
           <Tooltip title="Export to CSV">
             <IconButton
               onClick={() => exportToCsv('kukat_customers', customers, CSV_COLUMNS)}
-              size="small"
-              sx={{ color: KUKAT.textMuted }}
-            >
+              size="small" sx={{ color: KUKAT.textMuted }}>
               <Download />
             </IconButton>
           </Tooltip>
         </Box>
-        <Button variant="contained" startIcon={<Add />}
-          onClick={() => { setSaveError(''); setDrawerOpen(true); }}>
-          New customer
-        </Button>
+        {canCreate && (
+          <Button variant="contained" startIcon={<Add />}
+            onClick={() => { setSaveError(''); setDrawerOpen(true); }}>
+            New customer
+          </Button>
+        )}
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <DataTable
-        columns={COLUMNS}
-        rows={customers}
-        loading={loading}
+        columns={COLUMNS} rows={customers} loading={loading}
         keyField="customerID"
         onRowClick={(row) => navigate(`/customers/${row.customerID}`)}
         emptyMessage="No customers found."
       />
 
       {/* ── New customer drawer ──────────────────────────────── */}
-      <Drawer
-        anchor="right"
-        open={drawerOpen}
+      <Drawer anchor="right" open={drawerOpen}
         onClose={() => !saving && setDrawerOpen(false)}
-        PaperProps={{ sx: { width: { xs: '100%', sm: 560 }, p: 3, overflow: 'auto' } }}
-      >
+        PaperProps={{ sx: { width: { xs: '100%', sm: 560 }, p: 3, overflow: 'auto' } }}>
         <Box sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          mb: 3,
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', mb: 3,
         }}>
           <Box>
             <Typography variant="h5" sx={{ color: KUKAT.navy }}>New customer</Typography>
@@ -186,13 +177,11 @@ const CustomersPage = () => {
             <Close />
           </IconButton>
         </Box>
-
         {saveError && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSaveError('')}>
             {saveError}
           </Alert>
         )}
-
         <CustomerForm
           onSave={handleCreate}
           onCancel={() => setDrawerOpen(false)}
@@ -202,6 +191,4 @@ const CustomersPage = () => {
 
     </AppLayout>
   );
-};  
-
-export default CustomersPage;
+}

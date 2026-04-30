@@ -5,15 +5,15 @@ const AuthContext = createContext(null);
 
 // ── Role constants ─────────────────────────────────────────────
 export const ROLES = {
-  SUPERADMIN:  'superadmin',
-  MANAGER:     'manager',
-  AGENT:       'agent',
-  ACCOUNTANT:  'accountant',
-  HR:          'hr',
+  SUPERADMIN: 'superadmin',
+  MANAGER:    'manager',
+  AGENT:      'agent',
+  ACCOUNTANT: 'accountant',
+  HR:         'hr',
 };
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null);
+  const [user,    setUser]    = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Restore session on mount
@@ -22,24 +22,24 @@ export function AuthProvider({ children }) {
     const token  = localStorage.getItem('kukat_token');
     if (stored && token) {
       try { setUser(JSON.parse(stored)); }
-      catch { /* corrupted — clear */ clearAuth(); }
+      catch { clearAuth(); }
     }
     setLoading(false);
   }, []);
 
   const clearAuth = () => {
     localStorage.removeItem('kukat_token');
-    localStorage.removeItem('kukat_user');
     localStorage.removeItem('kukat_refresh');
+    localStorage.removeItem('kukat_user');
     setUser(null);
   };
 
   const login = useCallback(async (email, password) => {
     const response = await authApi.login(email, password);
     const userData = response.data ?? response;
-    localStorage.setItem('kukat_token', userData.token);
+    localStorage.setItem('kukat_token',  userData.token);
     localStorage.setItem('kukat_refresh', userData.refreshToken);
-    localStorage.setItem('kukat_user', JSON.stringify(userData.user));
+    localStorage.setItem('kukat_user',   JSON.stringify(userData.user));
     setUser(userData.user);
     return userData.user;
   }, []);
@@ -49,24 +49,8 @@ export function AuthProvider({ children }) {
     clearAuth();
   }, []);
 
-  // ── Role helpers ─────────────────────────────────────────────
-  const hasRole    = useCallback((role) => user?.role === role, [user]);
-  const isAdmin    = useCallback(() => user?.role === ROLES.SUPERADMIN, [user]);
-  const isManager  = useCallback(() => [ROLES.SUPERADMIN, ROLES.MANAGER].includes(user?.role), [user]);
-  const isAgent    = useCallback(() => user?.role === ROLES.AGENT, [user]);
-  const isAccountant = useCallback(() => [ROLES.SUPERADMIN, ROLES.ACCOUNTANT].includes(user?.role), [user]);
-  const isHR       = useCallback(() => [ROLES.SUPERADMIN, ROLES.HR].includes(user?.role), [user]);
-  const canApprove = useCallback(() => [ROLES.SUPERADMIN, ROLES.MANAGER].includes(user?.role), [user]);
-  const canViewAllData = useCallback(() =>
-    [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.ACCOUNTANT].includes(user?.role), [user]);
-
   return (
-    <AuthContext.Provider value={{
-      user, loading,
-      login, logout,
-      hasRole, isAdmin, isManager, isAgent, isAccountant, isHR,
-      canApprove, canViewAllData,
-    }}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

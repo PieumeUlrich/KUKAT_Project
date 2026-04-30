@@ -1,10 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Button, TextField, MenuItem, Grid, Card, CardContent,
-  Typography, InputAdornment, Alert, Chip, Tooltip,
+  Box, Button, TextField, MenuItem, Card, CardContent,
+  Typography, InputAdornment, Alert, Chip,
 } from '@mui/material';
-import { Search, CheckCircle, AccountBalance, HourglassEmpty, Star } from '@mui/icons-material';
+import {
+  Search, CheckCircle, AccountBalance,
+  HourglassEmpty, Warning,
+} from '@mui/icons-material';
 import AppLayout from '../../components/layout/AppLayout';
 import DataTable from '../../components/common/DataTable';
 import StatusChip from '../../components/common/StatusChip';
@@ -16,11 +19,20 @@ import { KUKAT } from '../../styles/theme';
 function StatCard({ label, value, icon, color, loading, prefix = '' }) {
   return (
     <Card>
-      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: '16px !important' }}>
-        <Box sx={{ width: 44, height: 44, borderRadius: '11px', background: `${color}18`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', color, flexShrink: 0 }}>{icon}</Box>
+      <CardContent sx={{
+        display: 'flex', alignItems: 'center', gap: 2, p: '16px !important',
+      }}>
+        <Box sx={{
+          width: 44, height: 44, borderRadius: '11px', background: `${color}18`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color, flexShrink: 0,
+        }}>
+          {icon}
+        </Box>
         <Box>
-          <Typography sx={{ fontSize: '1.35rem', fontWeight: 700, color: KUKAT.navy, lineHeight: 1 }}>
+          <Typography sx={{
+            fontSize: '1.35rem', fontWeight: 700, color: KUKAT.navy, lineHeight: 1,
+          }}>
             {loading ? '…' : `${prefix}${value}`}
           </Typography>
           <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>{label}</Typography>
@@ -34,19 +46,24 @@ const STATUS_FILTERS = ['', 'pending', 'approved', 'paid', 'cancelled'];
 
 export default function CommissionsPage() {
   const navigate = useNavigate();
-  const { canApprove, isAgent, user } = useAuth();
-  const [search, setSearch]   = useState('');
-  const [status, setStatus]   = useState('');
+  const { user } = useAuth();
+
+  // Commissions are agency revenue — only managers/accountants see this page
+  const canApprove = ['superadmin', 'manager'].includes(user?.role);
+  const canRecord  = ['superadmin', 'accountant'].includes(user?.role);
+
+  const [search,    setSearch]    = useState('');
+  const [status,    setStatus]    = useState('');
   const [approving, setApproving] = useState(null);
 
-  const filters = isAgent() ? { search, status, employeeID: user?.employeeID } : { search, status };
-  const { commissions: rawCommissions, loading, error, total, refetch } = useCommissions(filters);
-  const { stats: globalStats } = useCommissionStats();
+  const { commissions: rawCommissions, loading, error, total, refetch } =
+    useCommissions({ search, status });
+  const { stats: globalStats, loading: statsLoading } = useCommissionStats();
   const commissions = rawCommissions ?? [];
 
-  const totalEarned  = globalStats?.totalPaid    ?? 0;
-  const totalPending = globalStats?.pending       ?? 0;
-  const bonusCount   = globalStats?.bonusCount    ?? 0;
+  const totalReceived  = globalStats?.totalPaid     ?? 0;
+  const pendingCount   = globalStats?.pending       ?? 0;
+  const overdueCount   = globalStats?.overdueCount  ?? 0; // ← from updated getStats
 
   const handleApprove = useCallback(async (id) => {
     setApproving(id);
@@ -59,32 +76,35 @@ export default function CommissionsPage() {
   }, [refetch]);
 
   const COLUMNS = [
-    { id: 'commissionID',   label: 'ID',         minWidth: 70 },
-    { id: 'agentName',      label: 'Agent',       minWidth: 160 },
-    { id: 'bookingID',      label: 'Booking',     minWidth: 90,
+    { id: 'commissionID',    label: 'ID',         minWidth: 70 },
+    { id: 'supplierName',    label: 'Supplier',    minWidth: 180 },
+    { id: 'agentName',       label: 'Agent',       minWidth: 140 },
+    { id: 'bookingID',       label: 'Booking',     minWidth: 90,
       render: (v) => (
         <Button size="small" variant="text" sx={{ p: 0, minWidth: 0, fontSize: '0.82rem' }}
           onClick={(e) => { e.stopPropagation(); navigate(`/bookings/${v}`); }}>
           #{v}
         </Button>
       )},
-    { id: 'commissionRate',  label: 'Rate',        minWidth: 80, align: 'right',
+    { id: 'commissionRate',   label: 'Rate',        minWidth: 80, align: 'right',
       render: (v) => `${parseFloat(v || 0).toFixed(1)}%` },
-    { id: 'commissionAmount',label: 'Amount',      minWidth: 120, align: 'right',
+    { id: 'commissionAmount', label: 'Amount',      minWidth: 120, align: 'right',
       render: (v) => (
-        <Typography fontWeight={700} sx={{ color: KUKAT.navy, fontSize: '0.875rem' }}>
+        <Typography fontWeight={700} sx={{ color: '#15803D', fontSize: '0.875rem' }}>
           ${parseFloat(v || 0).toLocaleString('en-CA', { minimumFractionDigits: 2 })}
         </Typography>
       )},
-    { id: 'isBonus',         label: '',            minWidth: 60, sortable: false,
-      render: (v) => v ? (
-        <Tooltip title="Bonus payment"><Star sx={{ fontSize: 16, color: KUKAT.amber }} /></Tooltip>
-      ) : null },
-    { id: 'status',          label: 'Status',      minWidth: 110, sortable: false,
-      render: (v) => <StatusChip status={v} /> },
-    { id: 'approvedAt',      label: 'Approved',    minWidth: 120,
+    { id: 'dueDate',          label: 'Due date',    minWidth: 110,
       render: (v) => v ? new Date(v).toLocaleDateString('en-CA') : '—' },
-    ...(canApprove() ? [{
+    { id: 'status',           label: 'Status',      minWidth: 110, sortable: false,
+      render: (v) => <StatusChip status={v} /> },
+    { id: 'isOverdue',        label: '',            minWidth: 40, sortable: false,
+      render: (v) => v ? (
+        <Chip label="OVERDUE" size="small"
+          sx={{ background: '#FEE2E2', color: '#DC2626', fontSize: '0.65rem' }} />
+      ) : null },
+    // Approve button — managers only
+    ...(canApprove ? [{
       id: '_actions', label: '', minWidth: 120, sortable: false,
       render: (_, row) => row.status === 'pending' ? (
         <Button size="small" variant="outlined" color="success"
@@ -92,43 +112,41 @@ export default function CommissionsPage() {
           onClick={(e) => { e.stopPropagation(); handleApprove(row.commissionID); }}
           startIcon={<CheckCircle sx={{ fontSize: 14 }} />}
           sx={{ fontSize: '0.75rem', py: 0.3 }}>
-          Approve
+          {approving === row.commissionID ? '…' : 'Approve'}
         </Button>
       ) : null,
     }] : []),
   ];
 
   return (
-    <AppLayout title="Commissions" subtitle={`${total} commission record${total !== 1 ? 's' : ''}`}>
+    <AppLayout title="Commissions"
+      subtitle={`${total} commission record${total !== 1 ? 's' : ''}`}>
 
       {/* ── Stat cards ───────────────────────────────────────── */}
       <Box sx={{
         display: 'grid',
         gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' },
-        gap: 2,
-        mb: 3,
+        gap: 2, mb: 3,
       }}>
         <StatCard label="Total commissions" value={total}
           icon={<AccountBalance />} color={KUKAT.navy} loading={loading} />
-        <StatCard label="Total paid out"
-          value={totalEarned.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
-          icon={<CheckCircle />} color="#15803D" loading={loading} prefix="$" />
-        <StatCard label="Awaiting approval" value={totalPending}
-          icon={<HourglassEmpty />} color={KUKAT.amber} loading={loading} />
-        <StatCard label="Bonus payments" value={bonusCount}
-          icon={<Star />} color="#7C3AED" loading={loading} />
+        <StatCard label="Income received"
+          value={totalReceived.toLocaleString('en-CA', { minimumFractionDigits: 2 })}
+          icon={<CheckCircle />} color="#15803D" loading={statsLoading} prefix="$" />
+        <StatCard label="Awaiting verification" value={pendingCount}
+          icon={<HourglassEmpty />} color={KUKAT.amber} loading={statsLoading} />
+        <StatCard label="Overdue from suppliers" value={overdueCount}
+          icon={<Warning />} color="#DC2626" loading={statsLoading} />
       </Box>
 
       {/* ── Search + filters ─────────────────────────────────── */}
       <Box sx={{
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', sm: '1fr auto' },
-        gap: 1.5,
-        alignItems: 'center',
-        mb: 2.5,
+        gap: 1.5, alignItems: 'center', mb: 2.5,
       }}>
-        <TextField placeholder="Search agent, booking…" size="small" value={search}
-          onChange={(e) => setSearch(e.target.value)}
+        <TextField placeholder="Search supplier, booking…" size="small"
+          value={search} onChange={(e) => setSearch(e.target.value)}
           InputProps={{ startAdornment: (
             <InputAdornment position="start">
               <Search sx={{ fontSize: 18, color: KUKAT.textMuted }} />

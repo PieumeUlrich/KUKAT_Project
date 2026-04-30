@@ -2,28 +2,21 @@ import { query, sql } from '../config/db.js';
 
 // ── Date range helper ─────────────────────────────────────────
 const dateRange = (period) => {
-  const now   = new Date();
-  const year  = now.getFullYear();
-  const month = now.getMonth();
-
+  const now = new Date();
   switch (period) {
     case 'month': {
-      // Last 30 days
       const start = new Date(now); start.setDate(start.getDate() - 30);
       return { start, end: now };
     }
     case 'quarter': {
-      // Last 90 days
       const start = new Date(now); start.setDate(start.getDate() - 90);
       return { start, end: now };
     }
     case 'year': {
-      // Last 12 months
       const start = new Date(now); start.setFullYear(start.getFullYear() - 1);
       return { start, end: now };
     }
     default:
-      // All time
       return { start: new Date('2000-01-01'), end: new Date('2099-12-31') };
   }
 };
@@ -43,8 +36,8 @@ const getRevenueSummary = async (req, res, next) => {
     const result = await query(
       `SELECT
          COUNT(DISTINCT i.invoiceID)                                                   AS totalInvoices,
-         ISNULL(SUM(CASE WHEN i.status = 'paid'    THEN i.totalAmount ELSE 0 END), 0) AS total,
-         ISNULL(SUM(CASE WHEN i.status = 'unpaid'  THEN i.totalAmount ELSE 0 END), 0) AS outstanding,
+         ISNULL(SUM(CASE WHEN i.status = 'paid'   THEN i.totalAmount ELSE 0 END), 0)  AS total,
+         ISNULL(SUM(CASE WHEN i.status = 'unpaid' THEN i.totalAmount ELSE 0 END), 0)  AS outstanding,
          ISNULL(AVG(b.basePrice), 0)                                                   AS avgBooking
        FROM invoices i
        JOIN bookings b ON b.bookingID = i.bookingID
@@ -71,6 +64,7 @@ const getBookingStats = async (req, res, next) => {
          FROM bookings
          WHERE bookingDate BETWEEN @start AND @end`, params
       ),
+      // Commission receipts from suppliers (not payments to agents)
       query(
         `SELECT ISNULL(SUM(cp.paymentAmount), 0) AS totalCommissions
          FROM   commission_payments cp
@@ -92,18 +86,21 @@ const getAgentPerformance = async (req, res, next) => {
   try {
     const params = dateParams(req.query.period);
     const result = await query(
+      // Commission column now shows agency commission income
+      // linked through booking → commission (supplier pays agency)
+      // keeping agent reference via booking for performance tracking
       `SELECT
          e.employeeID, e.firstName, e.lastName, e.agentCode,
-         COUNT(DISTINCT b.bookingID)      AS bookingCount,
-         ISNULL(SUM(b.basePrice), 0)      AS revenue,
-         ISNULL(SUM(c.commissionAmount), 0) AS commission
+         COUNT(DISTINCT b.bookingID)        AS bookingCount,
+         ISNULL(SUM(b.basePrice), 0)        AS revenue,
+         ISNULL(SUM(c.commissionAmount), 0) AS commissionGenerated
        FROM   employees e
        JOIN   roles r ON r.roleID = e.roleID AND r.roleName = 'agent'
-       LEFT   JOIN bookings    b ON b.employeeID = e.employeeID
-                               AND b.bookingDate BETWEEN @start AND @end
-                               AND b.status != 'cancelled'
-       LEFT   JOIN commissions c ON c.employeeID = e.employeeID
-                               AND c.createdAt   BETWEEN @start AND @end
+       LEFT   JOIN bookings    b ON b.employeeID   = e.employeeID
+                               AND b.bookingDate   BETWEEN @start AND @end
+                               AND b.status       != 'cancelled'
+       LEFT   JOIN commissions c ON c.bookingID    = b.bookingID
+                               AND c.createdAt     BETWEEN @start AND @end
        WHERE  e.isActive = 1
        GROUP  BY e.employeeID, e.firstName, e.lastName, e.agentCode
        ORDER  BY bookingCount DESC`, params
@@ -119,12 +116,12 @@ const getTopDestinations = async (req, res, next) => {
     const result = await query(
       `SELECT TOP 10
          d.destinationID, d.destinationName, d.region,
-         COUNT(b.bookingID)           AS bookingCount,
-         ISNULL(SUM(b.basePrice), 0)  AS totalRevenue
+         COUNT(b.bookingID)          AS bookingCount,
+         ISNULL(SUM(b.basePrice), 0) AS totalRevenue
        FROM   destinations d
        JOIN   bookings     b ON b.destinationID = d.destinationID
-                            AND b.bookingDate BETWEEN @start AND @end
-                            AND b.status != 'cancelled'
+                            AND b.bookingDate   BETWEEN @start AND @end
+                            AND b.status       != 'cancelled'
        GROUP  BY d.destinationID, d.destinationName, d.region
        ORDER  BY bookingCount DESC`, params
     );
@@ -133,19 +130,29 @@ const getTopDestinations = async (req, res, next) => {
 };
 
 // GET /api/reports/commissions
+// Shows agency commission income from suppliers
 const getCommissionReport = async (req, res, next) => {
   try {
     const params = dateParams(req.query.period);
     const result = await query(
       `SELECT
-         ISNULL(SUM(CASE WHEN status = 'paid'     THEN commissionAmount ELSE 0 END), 0) AS paid,
-         ISNULL(SUM(CASE WHEN status = 'pending'  THEN commissionAmount ELSE 0 END), 0) AS pending,
-         COUNT(CASE WHEN status = 'pending' THEN 1 END)                                  AS pendingCount,
-         COUNT(*)                                                                         AS total
-       FROM commissions
-       WHERE createdAt BETWEEN @start AND @end`, params
+         ISNULL(SUM(CASE WHEN c.status = 'paid'    THEN c.commissionAmount ELSE 0 END), 0) AS paid,
+         ISNULL(SUM(CASE WHEN c.status = 'pending' THEN c.commissionAmount ELSE 0 END), 0) AS pending,
+         ISNULL(SUM(CASE WHEN c.status = 'approved' THEN c.commissionAmount ELSE 0 END), 0) AS approved,
+         COUNT(CASE WHEN c.status = 'pending'  THEN 1 END)                                  AS pendingCount,
+         COUNT(CASE WHEN c.status NOT IN ('paid','cancelled')
+                     AND c.dueDate IS NOT NULL
+                     AND c.dueDate < GETDATE() THEN 1 END)                                  AS overdueCount,
+         COUNT(*)                                                                            AS total,
+         s.supplierName,
+         COUNT(CASE WHEN c.supplierID = s.supplierID THEN 1 END)                            AS countBySupplier
+       FROM   commissions c
+       JOIN   suppliers   s ON s.supplierID = c.supplierID
+       WHERE  c.createdAt BETWEEN @start AND @end
+       GROUP  BY s.supplierName
+       ORDER  BY paid DESC`, params
     );
-    res.json(result.recordset[0]);
+    res.json(result.recordset);
   } catch (err) { next(err); }
 };
 
@@ -162,7 +169,7 @@ const getTopProducts = async (req, res, next) => {
        JOIN   suppliers s ON s.supplierID = p.supplierID
        JOIN   bookings  b ON b.productID  = p.productID
                          AND b.bookingDate BETWEEN @start AND @end
-                         AND b.status != 'cancelled'
+                         AND b.status     != 'cancelled'
        GROUP  BY p.productID, p.productName, s.supplierName
        ORDER  BY bookingCount DESC`, params
     );
@@ -170,10 +177,7 @@ const getTopProducts = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-
-
 // GET /api/reports/revenue-trend
-// Returns monthly revenue/bookings breakdown for charts
 const getRevenueTrend = async (req, res, next) => {
   try {
     const { period = 'year' } = req.query;
@@ -185,12 +189,12 @@ const getRevenueTrend = async (req, res, next) => {
 
     const result = await query(
       `SELECT
-         YEAR(b.bookingDate)                                                  AS year,
-         MONTH(b.bookingDate)                                                 AS month,
+         YEAR(b.bookingDate)  AS year,
+         MONTH(b.bookingDate) AS month,
          DATENAME(MONTH, b.bookingDate) + ' ' + CAST(YEAR(b.bookingDate) AS VARCHAR) AS label,
-         COUNT(*)                                                             AS bookings,
-         ISNULL(SUM(CASE WHEN b.status != 'cancelled' THEN b.basePrice ELSE 0 END), 0) AS revenue,
-         ISNULL(SUM(CASE WHEN i.status = 'paid' THEN i.totalAmount ELSE 0 END), 0)     AS collected
+         COUNT(*)             AS bookings,
+         ISNULL(SUM(CASE WHEN b.status != 'cancelled' THEN b.basePrice    ELSE 0 END), 0) AS revenue,
+         ISNULL(SUM(CASE WHEN i.status = 'paid'       THEN i.totalAmount  ELSE 0 END), 0) AS collected
        FROM   bookings b
        LEFT   JOIN invoices i ON i.bookingID = b.bookingID
        WHERE  b.bookingDate BETWEEN @start AND @end

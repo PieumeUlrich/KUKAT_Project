@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, List, ListItemButton, ListItemIcon, ListItemText,
-  Typography, Divider, Tooltip, Avatar, Chip, IconButton,
+  Typography, Tooltip, Avatar, Chip, IconButton,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -18,6 +18,7 @@ import {
   ChevronLeft, ChevronRight,
   Logout as LogoutIcon,
   LockOutlined as LockOutlinedIcon,
+  Business as SuppliersIcon,
   History,
   Close,
 } from '@mui/icons-material';
@@ -33,7 +34,8 @@ const NAV_ITEMS = [
   { label: 'Customers',       icon: <CustomersIcon />,   path: '/customers',       roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.HR] },
   { label: 'Packages',        icon: <PackagesIcon />,    path: '/packages',        roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.AGENT] },
   { label: 'Invoices',        icon: <InvoicesIcon />,    path: '/invoices',        roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.ACCOUNTANT] },
-  { label: 'Commissions',     icon: <CommissionsIcon />, path: '/commissions',     roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.AGENT, ROLES.ACCOUNTANT] },
+  { label: 'Commissions',     icon: <CommissionsIcon />, path: '/commissions',     roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.ACCOUNTANT] },
+  { label: 'Suppliers',       icon: <SuppliersIcon />,   path: '/suppliers',       roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.ACCOUNTANT] },
   { label: 'Reports',         icon: <ReportsIcon />,     path: '/reports',         roles: [ROLES.SUPERADMIN, ROLES.MANAGER, ROLES.ACCOUNTANT, ROLES.HR] },
   { label: 'Staff',           icon: <StaffIcon />,       path: '/staff',           roles: [ROLES.SUPERADMIN, ROLES.HR] },
   { label: 'HR',              icon: <HRIcon />,          path: '/hr',              roles: [ROLES.SUPERADMIN, ROLES.HR] },

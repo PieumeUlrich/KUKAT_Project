@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box, Grid, Card, CardContent, CardHeader, Typography,
+  Box, Card, CardContent, CardHeader, Typography,
   Button, Divider, Alert, Skeleton, IconButton, Drawer,
   Table, TableHead, TableRow, TableCell, TableBody, Chip,
   MenuItem, TextField, InputAdornment, CircularProgress,
@@ -24,8 +24,12 @@ function InfoRow({ label, value }) {
       borderBottom: `1px solid ${KUKAT.border}`,
       '&:last-child': { borderBottom: 'none' },
     }}>
-      <Typography variant="body2" sx={{ color: KUKAT.textMuted, fontWeight: 500 }}>{label}</Typography>
-      <Typography variant="body2" sx={{ color: KUKAT.navy, fontWeight: 600 }}>{value ?? '—'}</Typography>
+      <Typography variant="body2" sx={{ color: KUKAT.textMuted, fontWeight: 500 }}>
+        {label}
+      </Typography>
+      <Typography variant="body2" sx={{ color: KUKAT.navy, fontWeight: 600 }}>
+        {value ?? '—'}
+      </Typography>
     </Box>
   );
 }
@@ -37,15 +41,17 @@ const fmt = (n) =>
 
 const AddPaymentForm = ({ invoiceID, totalAmount, onSave, onCancel, saving }) => {
   const [form, setForm] = useState({
-    amountPaid: '', paymentMethod: 'CARD', paymentType: 'full',
-    paymentDate: new Date().toISOString().split('T')[0],
-    reference: '', notes: '',
+    amountPaid:    '',
+    paymentMethod: 'CARD',
+    paymentType:   'full',
+    paymentDate:   new Date().toISOString().split('T')[0],
+    reference:     '',
+    notes:         '',
   });
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }));
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-
       <Box sx={{
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
@@ -53,18 +59,22 @@ const AddPaymentForm = ({ invoiceID, totalAmount, onSave, onCancel, saving }) =>
       }}>
         <TextField fullWidth label="Amount paid *" type="number"
           value={form.amountPaid} onChange={set('amountPaid')}
-          InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }} />
+          InputProps={{
+            startAdornment: <InputAdornment position="start">$</InputAdornment>
+          }} />
 
         <TextField select fullWidth label="Payment method *"
           value={form.paymentMethod} onChange={set('paymentMethod')}>
           {['CARD', 'CASH', 'TRANSFER', 'CHECK'].map(m =>
-            <MenuItem key={m} value={m}>{m}</MenuItem>)}
+            <MenuItem key={m} value={m}>{m}</MenuItem>
+          )}
         </TextField>
 
         <TextField select fullWidth label="Payment type"
           value={form.paymentType} onChange={set('paymentType')}>
           {['deposit', 'partial', 'full', 'refund'].map(t =>
-            <MenuItem key={t} value={t} sx={{ textTransform: 'capitalize' }}>{t}</MenuItem>)}
+            <MenuItem key={t} value={t} sx={{ textTransform: 'capitalize' }}>{t}</MenuItem>
+          )}
         </TextField>
 
         <TextField fullWidth label="Payment date" type="date"
@@ -79,26 +89,32 @@ const AddPaymentForm = ({ invoiceID, totalAmount, onSave, onCancel, saving }) =>
         value={form.notes} onChange={set('notes')} />
 
       <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 1 }}>
-        <Button variant="outlined" onClick={onCancel} disabled={saving}>Cancel</Button>
+        <Button variant="outlined" onClick={onCancel} disabled={saving}>
+          Cancel
+        </Button>
         <Button variant="contained" disabled={saving || !form.amountPaid}
           onClick={() => onSave(form)}>
-          {saving ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Record payment'}
+          {saving
+            ? <CircularProgress size={20} sx={{ color: '#fff' }} />
+            : 'Record payment'}
         </Button>
       </Box>
-
     </Box>
   );
-}
+};
 
 export default function InvoiceDetailPage() {
-  const { id }     = useParams();
-  const navigate   = useNavigate();
-  const { canApprove } = useAuth();
+  const { id }   = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Mark as paid visible to superadmin, manager, accountant
+  const canMarkPaid = ['superadmin', 'manager', 'accountant'].includes(user?.role);
 
   const { invoice, loading, error, refetch } = useInvoice(id);
-  const [drawer,   setDrawer]   = useState(false);
-  const [saving,   setSaving]   = useState(false);
-  const [saveErr,  setSaveErr]  = useState('');
+  const [drawer,     setDrawer]     = useState(false);
+  const [saving,     setSaving]     = useState(false);
+  const [saveErr,    setSaveErr]    = useState('');
   const [markingPaid, setMarkingPaid] = useState(false);
 
   const handleAddPayment = useCallback(async (data) => {
@@ -113,7 +129,7 @@ export default function InvoiceDetailPage() {
   }, [id, refetch]);
 
   const handleMarkPaid = useCallback(async () => {
-    setMarkingPaid(true);
+    setMarkingPaid(true); setSaveErr('');
     try {
       await invoicesApi.markPaid(id);
       refetch();
@@ -121,6 +137,27 @@ export default function InvoiceDetailPage() {
       setSaveErr(err.response?.data?.message || 'Failed to mark as paid.');
     } finally { setMarkingPaid(false); }
   }, [id, refetch]);
+
+  // PDF fetch helper
+  const fetchPdf = useCallback((action) => {
+    const token = localStorage.getItem('kukat_token');
+    const url   = `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/invoices/${id}/pdf`;
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.blob())
+      .then(blob => {
+        const blobUrl = URL.createObjectURL(blob);
+        if (action === 'download') {
+          const link = document.createElement('a');
+          link.href     = blobUrl;
+          link.download = `KUKAT-Invoice-${id}.pdf`;
+          link.click();
+          URL.revokeObjectURL(blobUrl);
+        } else {
+          const win = window.open(blobUrl);
+          if (win) win.onload = () => win.print();
+        }
+      });
+  }, [id]);
 
   if (loading) return (
     <AppLayout title="Invoice detail">
@@ -137,12 +174,16 @@ export default function InvoiceDetailPage() {
 
   const inv = invoice || {};
   const totalPaid = (inv.payments ?? []).reduce((s, p) =>
-    p.status === 'completed' ? s + parseFloat(p.amountPaid || 0) : s, 0);
+    p.status === 'completed' ? s + parseFloat(p.amountPaid || 0) : s, 0
+  );
   const balance = parseFloat(inv.totalAmount || 0) - totalPaid;
+  const isPaid  = inv.status === 'paid';
+  const isOpen  = inv.status !== 'paid' && inv.status !== 'refunded';
 
   return (
-    <AppLayout title={`Invoice #${inv.invoiceID}`}
-      subtitle={inv.customerFirstName + ' ' + inv.customerLastName}>
+    <AppLayout
+      title={`Invoice #${inv.invoiceID}`}
+      subtitle={`${inv.customerFirstName || ''} ${inv.customerLastName || ''}`}>
 
       {/* ── Back + actions ─────────────────────────────────── */}
       <Box sx={{
@@ -157,59 +198,34 @@ export default function InvoiceDetailPage() {
           sx={{ alignSelf: { xs: 'flex-start', sm: 'auto' } }}>
           Back to invoices
         </Button>
-        {/* Download PDF */}
-        {(['paid', 'partial'].includes(inv.status)) && (
-        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<Download />}
-            onClick={() => {
-              const token = localStorage.getItem('kukat_token');
-              const url = `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/invoices/${id}/pdf`;
-              fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-                .then(res => res.blob())
-                .then(blob => {
-                  const link = document.createElement('a');
-                  link.href = URL.createObjectURL(blob);
-                  link.download = `KUKAT-Invoice-${id}.pdf`;
-                  link.click();
-                  URL.revokeObjectURL(link.href);
-                });
-            }}
-          >
-            Download PDF
-          </Button>
 
-          {/* Print */}
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<Print />}
-            onClick={() => {
-              const token = localStorage.getItem('kukat_token');
-              const url = `${process.env.REACT_APP_API_URL || 'http://localhost:3001/api'}/invoices/${id}/pdf`;
-              fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-                .then(res => res.blob())
-                .then(blob => {
-                  const blobUrl = URL.createObjectURL(blob);
-                  const win = window.open(blobUrl);
-                  win.onload = () => { win.print(); };
-                });
-            }}
-          >
-            Print
-          </Button>
-        </Box>
-        )}
         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-          {inv.status !== 'paid' && inv.status !== 'refunded' && canApprove() && (
+          {/* PDF buttons — paid invoices only */}
+          {isPaid && (
+            <>
+              <Button variant="outlined" size="small" startIcon={<Download />}
+                onClick={() => fetchPdf('download')}>
+                Download PDF
+              </Button>
+              <Button variant="outlined" size="small" startIcon={<Print />}
+                onClick={() => fetchPdf('print')}>
+                Print
+              </Button>
+            </>
+          )}
+
+          {/* Mark as paid — managers/accountants only, open invoices only */}
+          {isOpen && canMarkPaid && (
             <Button variant="outlined" size="small" color="success"
               disabled={markingPaid} onClick={handleMarkPaid}>
-              {markingPaid ? <CircularProgress size={16} /> : 'Mark as paid'}
+              {markingPaid
+                ? <CircularProgress size={16} />
+                : 'Mark as paid'}
             </Button>
           )}
-          {inv.status !== 'paid' && inv.status !== 'refunded' && (
+
+          {/* Add payment — open invoices only */}
+          {isOpen && (
             <Button variant="contained" startIcon={<Add />} size="small"
               onClick={() => { setSaveErr(''); setDrawer(true); }}>
               Add payment
@@ -219,17 +235,18 @@ export default function InvoiceDetailPage() {
       </Box>
 
       {saveErr && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSaveErr('')}>{saveErr}</Alert>
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSaveErr('')}>
+          {saveErr}
+        </Alert>
       )}
 
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 
-        {/* ── Invoice summary + Customer side by side ────────── */}
+        {/* ── Invoice summary + Customer ─────────────────────── */}
         <Box sx={{
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' },
-          gap: 2.5,
-          alignItems: 'start',
+          gap: 2.5, alignItems: 'start',
         }}>
 
           {/* Invoice summary */}
@@ -267,57 +284,48 @@ export default function InvoiceDetailPage() {
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1 }}>
                 <Typography fontWeight={600} sx={{ color: '#15803D' }}>Paid</Typography>
-                <Typography fontWeight={700} sx={{ color: '#15803D' }}>{fmt(totalPaid)}</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1 }}>
-                <Typography fontWeight={600}
-                  sx={{ color: balance > 0 ? '#DC2626' : KUKAT.textMuted }}>
-                  Balance due
-                </Typography>
-                <Typography fontWeight={700}
-                  sx={{ color: balance > 0 ? '#DC2626' : '#15803D' }}>
-                  {fmt(balance)}
+                <Typography fontWeight={700} sx={{ color: '#15803D' }}>
+                  {fmt(totalPaid)}
                 </Typography>
               </Box>
+              {balance > 0 && (
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1 }}>
+                  <Typography fontWeight={600} sx={{ color: '#DC2626' }}>
+                    Balance due
+                  </Typography>
+                  <Typography fontWeight={700} sx={{ color: '#DC2626' }}>
+                    {fmt(balance)}
+                  </Typography>
+                </Box>
+              )}
             </CardContent>
           </Card>
 
-          {/* Customer + Notes stacked */}
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Card>
-              <CardHeader
-                avatar={<Person sx={{ color: KUKAT.teal }} />}
-                title="Customer"
-                titleTypographyProps={{ variant: 'h6', sx: { fontSize: '0.95rem', color: KUKAT.navy } }}
-              />
-              <CardContent sx={{ pt: 0 }}>
-                <Typography fontWeight={600} sx={{ color: KUKAT.navy }}>
-                  {inv.customerFirstName} {inv.customerLastName}
-                </Typography>
-                <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>
-                  {inv.customerEmail}
-                </Typography>
-                <Button size="small" variant="text" sx={{ mt: 1, px: 0 }}
-                  onClick={() => navigate(`/bookings/${inv.bookingID}`)}>
-                  View booking →
-                </Button>
-              </CardContent>
-            </Card>
-
-            {inv.notes && (
-              <Card>
-                <CardHeader title="Notes"
-                  titleTypographyProps={{ variant: 'h6', sx: { fontSize: '0.95rem', color: KUKAT.navy } }}
-                />
-                <CardContent sx={{ pt: 0 }}>
-                  <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>{inv.notes}</Typography>
-                </CardContent>
-              </Card>
-            )}
-          </Box>
+          {/* Customer card */}
+          <Card>
+            <CardHeader
+              avatar={<Person sx={{ color: KUKAT.teal }} />}
+              title="Customer"
+              titleTypographyProps={{
+                variant: 'h6', sx: { fontSize: '0.95rem', color: KUKAT.navy }
+              }}
+            />
+            <CardContent sx={{ pt: 0 }}>
+              <Typography fontWeight={600} sx={{ color: KUKAT.navy }}>
+                {inv.customerFirstName} {inv.customerLastName}
+              </Typography>
+              <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>
+                {inv.customerEmail}
+              </Typography>
+              <Button size="small" variant="text" sx={{ mt: 1, px: 0 }}
+                onClick={() => navigate(`/bookings/${inv.bookingID}`)}>
+                View booking →
+              </Button>
+            </CardContent>
+          </Card>
         </Box>
 
-        {/* ── Payment history — full width ───────────────────── */}
+        {/* ── Payment history ────────────────────────────────── */}
         <Card>
           <CardHeader
             avatar={<AttachMoney sx={{ color: KUKAT.amber }} />}
@@ -347,15 +355,20 @@ export default function InvoiceDetailPage() {
                     <TableRow key={p.paymentID}>
                       <TableCell>
                         {p.paymentDate
-                          ? new Date(p.paymentDate).toLocaleDateString('en-CA') : '—'}
+                          ? new Date(p.paymentDate).toLocaleDateString('en-CA')
+                          : '—'}
                       </TableCell>
                       <TableCell>
                         <Chip label={p.paymentMethod} size="small"
                           sx={{ fontSize: '0.7rem', height: 20, borderRadius: '4px',
                             background: `${KUKAT.navy}10`, color: KUKAT.navy }} />
                       </TableCell>
-                      <TableCell sx={{ textTransform: 'capitalize' }}>{p.paymentType}</TableCell>
-                      <TableCell sx={{ color: KUKAT.textMuted }}>{p.reference || '—'}</TableCell>
+                      <TableCell sx={{ textTransform: 'capitalize' }}>
+                        {p.paymentType}
+                      </TableCell>
+                      <TableCell sx={{ color: KUKAT.textMuted }}>
+                        {p.reference || '—'}
+                      </TableCell>
                       <TableCell align="right">
                         <Typography fontWeight={700} sx={{ color: '#15803D' }}>
                           {fmt(p.amountPaid)}
@@ -385,7 +398,9 @@ export default function InvoiceDetailPage() {
               Invoice #{inv.invoiceID} · Balance due: {fmt(balance)}
             </Typography>
           </Box>
-          <IconButton onClick={() => setDrawer(false)} disabled={saving}><Close /></IconButton>
+          <IconButton onClick={() => setDrawer(false)} disabled={saving}>
+            <Close />
+          </IconButton>
         </Box>
         {saveErr && <Alert severity="error" sx={{ mb: 2 }}>{saveErr}</Alert>}
         <AddPaymentForm

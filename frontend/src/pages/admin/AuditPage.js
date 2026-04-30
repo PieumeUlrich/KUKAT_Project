@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box, Card, CardContent, Typography, TextField,
+  Box, Typography, TextField,
   MenuItem, Chip, Alert,
 } from '@mui/material';
 import AppLayout from '../../components/layout/AppLayout';
@@ -9,20 +9,23 @@ import api from '../../api/client';
 import { KUKAT } from '../../styles/theme';
 
 const ACTION_COLORS = {
-  CREATE:          { bg: '#DCFCE7', color: '#15803D' },
-  UPDATE:          { bg: '#DBEAFE', color: '#1D4ED8' },
-  DELETE:          { bg: '#FEE2E2', color: '#DC2626' },
-  LOGIN:           { bg: '#F3E8FF', color: '#7C3AED' },
-  LOGOUT:          { bg: '#F1F5F9', color: '#475569' },
-  CONFIRM:         { bg: '#CCFBF1', color: '#0F766E' },
-  CANCEL:          { bg: '#FEE2E2', color: '#DC2626' },
-  APPROVE:         { bg: '#DCFCE7', color: '#15803D' },
-  MARK_PAID:       { bg: '#DCFCE7', color: '#15803D' },
-  ADD_PAYMENT:     { bg: '#FEF9C3', color: '#854D0E' },
-  CHANGE_PASSWORD: { bg: '#FEE2E2', color: '#DC2626' },
-  REASSIGN:        { bg: '#DBEAFE', color: '#1D4ED8' },
-  ACTIVATE:        { bg: '#DCFCE7', color: '#15803D' },
-  DEACTIVATE:      { bg: '#FEE2E2', color: '#DC2626' },
+  CREATE:                { bg: '#DCFCE7', color: '#15803D' },
+  UPDATE:                { bg: '#DBEAFE', color: '#1D4ED8' },
+  DELETE:                { bg: '#FEE2E2', color: '#DC2626' },
+  LOGIN:                 { bg: '#F3E8FF', color: '#7C3AED' },
+  LOGOUT:                { bg: '#F1F5F9', color: '#475569' },
+  CONFIRM:               { bg: '#CCFBF1', color: '#0F766E' },
+  COMPLETE:              { bg: '#CCFBF1', color: '#0F766E' },
+  CANCEL:                { bg: '#FEE2E2', color: '#DC2626' },
+  APPROVE:               { bg: '#DCFCE7', color: '#15803D' },
+  MARK_PAID:             { bg: '#DCFCE7', color: '#15803D' },
+  ADD_PAYMENT:           { bg: '#FEF9C3', color: '#854D0E' },
+  MEMBER_PAYMENT:        { bg: '#FEF9C3', color: '#854D0E' },
+  CHANGE_PASSWORD:       { bg: '#FEE2E2', color: '#DC2626' },
+  REASSIGN:              { bg: '#DBEAFE', color: '#1D4ED8' },
+  ACTIVATE:              { bg: '#DCFCE7', color: '#15803D' },
+  DEACTIVATE:            { bg: '#FEE2E2', color: '#DC2626' },
+  COMMISSION_RATE_CHANGE:{ bg: '#FEF9C3', color: '#854D0E' },
 };
 
 const COLUMNS = [
@@ -30,7 +33,7 @@ const COLUMNS = [
   { id: 'createdAt',    label: 'Timestamp', minWidth: 160,
     render: (v) => v ? new Date(v).toLocaleString('en-CA') : '—' },
   { id: 'employeeName', label: 'User',      minWidth: 140 },
-  { id: 'action',       label: 'Action',    minWidth: 120,
+  { id: 'action',       label: 'Action',    minWidth: 140,
     render: (v) => {
       const cfg = ACTION_COLORS[v] || { bg: '#F1F5F9', color: '#475569' };
       return (
@@ -52,20 +55,21 @@ export default function AuditPage() {
   const [action,  setAction]  = useState('');
   const [table,   setTable]   = useState('');
 
-const fetch = useCallback(async () => {
-  setLoading(true); setError(null);
-  try {
-    const params = new URLSearchParams();
-    if (action) params.append('action', action);
-    if (table)  params.append('tableName', table);
-    const { data } = await api.get(`/audit?${params}`);
-    setLogs(Array.isArray(data) ? data : []);
-  } catch (e) {
-    setError(e.response?.data?.message || 'Failed to load audit logs.');
-  } finally { setLoading(false); }
-}, [action, table]);
+  // ← renamed from fetch to loadLogs to avoid conflict with browser fetch API
+  const loadLogs = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (action) params.append('action', action);
+      if (table)  params.append('tableName', table);
+      const { data } = await api.get(`/audit?${params}`);
+      setLogs(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setError(e.response?.data?.message || 'Failed to load audit logs.');
+    } finally { setLoading(false); }
+  }, [action, table]);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => { loadLogs(); }, [loadLogs]);
 
   return (
     <AppLayout title="Audit log" subtitle="Track all system changes and user actions">
@@ -86,8 +90,8 @@ const fetch = useCallback(async () => {
         <TextField select size="small" label="Table" value={table}
           onChange={(e) => setTable(e.target.value)}>
           <MenuItem value="">All tables</MenuItem>
-          {['bookings','customers','employees','invoices','payments',
-            'commissions','commission_payments'].map(t => (
+          {['bookings', 'customers', 'employees', 'invoices', 'payments',
+            'commissions', 'commission_payments', 'suppliers', 'products'].map(t => (
             <MenuItem key={t} value={t}>{t}</MenuItem>
           ))}
         </TextField>

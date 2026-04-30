@@ -4,7 +4,7 @@ import {
   TextField, MenuItem, Alert, Avatar, Divider,
   Dialog, DialogTitle, DialogContent, DialogActions, CircularProgress,
 } from '@mui/material';
-import { SwapHoriz, People, TrendingUp } from '@mui/icons-material';
+import { SwapHoriz } from '@mui/icons-material';
 import AppLayout from '../../components/layout/AppLayout';
 import DataTable from '../../components/common/DataTable';
 import { useCustomers } from '../../hooks/useModules';
@@ -12,38 +12,47 @@ import { customersApi, staffApi } from '../../api/index';
 import { KUKAT } from '../../styles/theme';
 
 const COLUMNS = [
-  { id: 'customerID',  label: 'ID',       minWidth: 60 },
-  { id: 'name',        label: 'Customer', minWidth: 180,
+  { id: 'customerID',   label: 'ID',            minWidth: 60 },
+  { id: 'name',         label: 'Customer',      minWidth: 180,
     render: (_, r) => (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-        <Avatar sx={{ width: 28, height: 28, fontSize: '0.75rem', fontWeight: 700, background: KUKAT.teal, color: '#fff' }}>
+        <Avatar sx={{
+          width: 28, height: 28, fontSize: '0.75rem',
+          fontWeight: 700, background: KUKAT.teal, color: '#fff',
+        }}>
           {r.firstName?.[0]}{r.lastName?.[0]}
         </Avatar>
-        <Typography variant="body2" fontWeight={600}>{r.firstName} {r.lastName}</Typography>
+        <Typography variant="body2" fontWeight={600}>
+          {r.firstName} {r.lastName}
+        </Typography>
       </Box>
     )},
   { id: 'agentName',    label: 'Current agent', minWidth: 160 },
-  { id: 'city',         label: 'City',     minWidth: 110 },
-  { id: 'bookingCount', label: 'Bookings', minWidth: 90, align: 'center' },
+  { id: 'city',         label: 'City',          minWidth: 110 },
+  { id: 'bookingCount', label: 'Bookings',       minWidth: 90, align: 'center' },
 ];
 
 export default function HRPage() {
-  const [agents,      setAgents]      = useState([]);
-  const [filterAgent, setFilterAgent] = useState('');
-  const [selected,    setSelected]    = useState([]);
-  const [newAgent,    setNewAgent]    = useState('');
-  const [dialogOpen,  setDialogOpen]  = useState(false);
-  const [saving,      setSaving]      = useState(false);
-  const [saveErr,     setSaveErr]     = useState('');
-  const [success,     setSuccess]     = useState('');
+  const [agents,       setAgents]      = useState([]);
+  const [allCustomers, setAllCustomers] = useState([]); // ← all customers for workload stats
+  const [filterAgent,  setFilterAgent] = useState('');
+  const [selected,     setSelected]    = useState([]);
+  const [newAgent,     setNewAgent]    = useState('');
+  const [dialogOpen,   setDialogOpen]  = useState(false);
+  const [saving,       setSaving]      = useState(false);
+  const [saveErr,      setSaveErr]     = useState('');
+  const [success,      setSuccess]     = useState('');
 
+  // Filtered customers for the table
   const { customers: rawCustomers, loading, error, refetch } = useCustomers({
     agentID: filterAgent || undefined,
+    limit: 'all',
   });
   const customers = rawCustomers ?? [];
 
+  // Load agents
   useEffect(() => {
-    staffApi.getAll({ role: 'agent' })
+    staffApi.getAll({ role: 'agent', limit: 'all' })
       .then(({ data }) => {
         const list = data.employees ?? data.data ?? data;
         setAgents(Array.isArray(list) ? list : []);
@@ -51,38 +60,67 @@ export default function HRPage() {
       .catch(() => {});
   }, []);
 
-  // Agent workload stats
+  // Load ALL customers (unfiltered) for workload card counts
+  useEffect(() => {
+    customersApi.getAll({ limit: 'all' })
+      .then(({ data }) => {
+        const list = data.customers ?? data.data ?? data;
+        setAllCustomers(Array.isArray(list) ? list : []);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Agent workload stats — always uses allCustomers, never filtered
   const agentStats = agents.map(a => ({
     ...a,
-    customerCount: customers.filter(c => c.assignedAgentID === a.employeeID).length,
+    customerCount: allCustomers.filter(
+      c => c.assignedAgentID === a.employeeID
+    ).length,
   })).sort((a, b) => b.customerCount - a.customerCount);
 
   const handleBulkReassign = useCallback(async () => {
     if (!newAgent || selected.length === 0) return;
     setSaving(true); setSaveErr(''); setSuccess('');
     try {
-      await Promise.all(selected.map(id => customersApi.reassign(id, newAgent)));
-      setSuccess(`${selected.length} customer${selected.length > 1 ? 's' : ''} reassigned successfully.`);
+      // ← Pass agentID as object — matches customersApi.reassign(id, { agentID })
+      await Promise.all(
+        selected.map(id => customersApi.reassign(id, { agentID: newAgent }))
+      );
+      setSuccess(
+        `${selected.length} customer${selected.length > 1 ? 's' : ''} reassigned successfully.`
+      );
       setSelected([]);
       setDialogOpen(false);
       setNewAgent('');
       refetch();
+      // Refresh allCustomers so workload cards update
+      customersApi.getAll({ limit: 'all' })
+        .then(({ data }) => {
+          const list = data.customers ?? data.data ?? data;
+          setAllCustomers(Array.isArray(list) ? list : []);
+        })
+        .catch(() => {});
     } catch (err) {
       setSaveErr(err.response?.data?.message || 'Reassignment failed.');
     } finally { setSaving(false); }
   }, [selected, newAgent, refetch]);
 
+  const selectedAgent = agents.find(a => a.employeeID === filterAgent);
+
   return (
-    <AppLayout title="HR — Client management" subtitle="Manage agent assignments and workloads">
+    <AppLayout
+      title="HR — Client management"
+      subtitle="Manage agent assignments and workloads">
 
       {/* ── Agent workload cards ──────────────────────────────── */}
-      <Typography variant="h6" sx={{ color: KUKAT.navy, mb: 2 }}>Agent workloads</Typography>
+      <Typography variant="h6" sx={{ color: KUKAT.navy, mb: 2 }}>
+        Agent workloads
+      </Typography>
 
       <Box sx={{
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' },
-        gap: 2,
-        mb: 3,
+        gap: 2, mb: 3,
       }}>
         {agentStats.slice(0, 6).map(a => (
           <Card key={a.employeeID}
@@ -91,12 +129,18 @@ export default function HRPage() {
               border: filterAgent === a.employeeID
                 ? `2px solid ${KUKAT.amber}`
                 : `1px solid ${KUKAT.border}`,
+              transition: 'border 0.15s',
             }}
-            onClick={() => setFilterAgent(prev => prev === a.employeeID ? '' : a.employeeID)}>
-            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: '14px !important' }}>
+            onClick={() =>
+              setFilterAgent(prev => prev === a.employeeID ? '' : a.employeeID)
+            }>
+            <CardContent sx={{
+              display: 'flex', alignItems: 'center',
+              gap: 2, p: '14px !important',
+            }}>
               <Avatar sx={{
-                width: 38, height: 38, fontSize: '0.85rem', fontWeight: 700,
-                background: KUKAT.navy, color: '#fff',
+                width: 38, height: 38, fontSize: '0.85rem',
+                fontWeight: 700, background: KUKAT.navy, color: '#fff',
               }}>
                 {a.firstName?.[0]}{a.lastName?.[0]}
               </Avatar>
@@ -104,13 +148,20 @@ export default function HRPage() {
                 <Typography variant="body2" fontWeight={600} sx={{ color: KUKAT.navy }}>
                   {a.firstName} {a.lastName}
                 </Typography>
-                <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>{a.agentCode}</Typography>
+                <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>
+                  {a.agentCode}
+                </Typography>
               </Box>
               <Box sx={{ textAlign: 'right' }}>
-                <Typography sx={{ fontSize: '1.3rem', fontWeight: 700, color: KUKAT.teal, lineHeight: 1 }}>
+                <Typography sx={{
+                  fontSize: '1.3rem', fontWeight: 700,
+                  color: KUKAT.teal, lineHeight: 1,
+                }}>
                   {a.customerCount}
                 </Typography>
-                <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>clients</Typography>
+                <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>
+                  clients
+                </Typography>
               </Box>
             </CardContent>
           </Card>
@@ -125,13 +176,12 @@ export default function HRPage() {
         flexDirection: { xs: 'column', sm: 'row' },
         alignItems: { xs: 'stretch', sm: 'center' },
         justifyContent: 'space-between',
-        gap: 1.5,
-        mb: 2,
+        gap: 1.5, mb: 2,
       }}>
         <Box>
           <Typography variant="h6" sx={{ color: KUKAT.navy }}>
-            {filterAgent
-              ? `Customers — ${agents.find(a => a.employeeID === filterAgent)?.firstName || ''} ${agents.find(a => a.employeeID === filterAgent)?.lastName || ''}`
+            {filterAgent && selectedAgent
+              ? `Customers — ${selectedAgent.firstName} ${selectedAgent.lastName}`
               : 'All customers'}
           </Typography>
           {filterAgent && (
@@ -149,8 +199,12 @@ export default function HRPage() {
         )}
       </Box>
 
-      {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>{success}</Alert>}
-      {error   && <Alert severity="error"   sx={{ mb: 2 }}>{error}</Alert>}
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+          {success}
+        </Alert>
+      )}
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <DataTable
         columns={COLUMNS}
@@ -179,7 +233,8 @@ export default function HRPage() {
       )}
 
       {/* ── Reassign dialog ────────────────────────────────────── */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="xs" fullWidth>
+      <Dialog open={dialogOpen} onClose={() => !saving && setDialogOpen(false)}
+        maxWidth="xs" fullWidth>
         <DialogTitle>
           Reassign {selected.length} customer{selected.length > 1 ? 's' : ''}
         </DialogTitle>
@@ -192,20 +247,26 @@ export default function HRPage() {
             value={newAgent} onChange={(e) => setNewAgent(e.target.value)}>
             {agents.map(a => (
               <MenuItem key={a.employeeID} value={a.employeeID}>
-                {a.firstName} {a.lastName} ({a.agentCode}) — {agentStats.find(s => s.employeeID === a.employeeID)?.customerCount ?? 0} clients
+                {a.firstName} {a.lastName} ({a.agentCode})
+                {' — '}
+                {agentStats.find(s => s.employeeID === a.employeeID)?.customerCount ?? 0} clients
               </MenuItem>
             ))}
           </TextField>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => setDialogOpen(false)} disabled={saving}>
+            Cancel
+          </Button>
           <Button variant="contained" onClick={handleBulkReassign}
             disabled={!newAgent || saving}>
-            {saving ? <CircularProgress size={18} sx={{ color: '#fff' }} /> : 'Reassign'}
+            {saving
+              ? <CircularProgress size={18} sx={{ color: '#fff' }} />
+              : 'Reassign'}
           </Button>
         </DialogActions>
       </Dialog>
 
-    </AppLayout>  
+    </AppLayout>
   );
 }

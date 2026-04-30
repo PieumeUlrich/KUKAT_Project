@@ -1,5 +1,6 @@
 import { query, sql } from '../config/db.js';
 import { buildSearch, paginate, paginated, httpError } from '../utils/helpers.js';
+import auditLog from '../utils/audit.js'; // ← MISSING IMPORT
 
 // ── Products (Packages) ───────────────────────────────────────
 
@@ -30,8 +31,8 @@ const getAllProducts = async (req, res, next) => {
       `SELECT p.productID, p.productName, p.description, p.isActive,
               s.supplierID, s.supplierName, s.commissionRate AS supplierCommissionRate,
               pc.categoryID, pc.categoryName
-       FROM   products        p
-       JOIN   suppliers       s  ON s.supplierID  = p.supplierID
+       FROM   products           p
+       JOIN   suppliers          s  ON s.supplierID  = p.supplierID
        JOIN   product_categories pc ON pc.categoryID = p.categoryID
        ${where}
        ORDER  BY p.productName
@@ -40,7 +41,7 @@ const getAllProducts = async (req, res, next) => {
 
     res.json(paginated(result.recordset, total, page, limit));
   } catch (err) { next(err); }
-}
+};
 
 const getProductById = async (req, res, next) => {
   try {
@@ -48,8 +49,8 @@ const getProductById = async (req, res, next) => {
     const result = await query(
       `SELECT p.*, s.supplierName, s.commissionRate AS supplierCommissionRate,
               pc.categoryName
-       FROM   products p
-       JOIN   suppliers s ON s.supplierID = p.supplierID
+       FROM   products           p
+       JOIN   suppliers          s  ON s.supplierID  = p.supplierID
        JOIN   product_categories pc ON pc.categoryID = p.categoryID
        WHERE  p.productID = @id`,
       { id: { type: sql.Int, value: id } }
@@ -57,7 +58,7 @@ const getProductById = async (req, res, next) => {
     if (!result.recordset[0]) throw httpError(404, 'Product not found.');
     res.json(result.recordset[0]);
   } catch (err) { next(err); }
-}
+};
 
 const createProduct = async (req, res, next) => {
   try {
@@ -77,19 +78,30 @@ const createProduct = async (req, res, next) => {
         isActive:    { type: sql.Bit,      value: isActive !== false ? 1 : 0 },
       }
     );
-    res.status(201).json({ productID: result.recordset[0].productID, message: 'Product created.' });
+    const newID = result.recordset[0].productID;
+    await auditLog(req, 'CREATE', 'products', newID, null, req.body);
+    res.status(201).json({ productID: newID, message: 'Product created.' });
   } catch (err) { next(err); }
-}
+};
 
 const updateProduct = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
     const { supplierID, categoryID, productName, description, isActive } = req.body;
+
+    // ← Fetch old record BEFORE updating for audit log
+    const oldResult = await query(
+      `SELECT supplierID, categoryID, productName, description, isActive
+       FROM products WHERE productID = @id`,
+      { id: { type: sql.Int, value: id } }
+    );
+    const oldRecord = oldResult.recordset[0] ?? null;
+
     await query(
       `UPDATE products SET
-         supplierID = @supplierID, categoryID = @categoryID,
+         supplierID  = @supplierID,  categoryID  = @categoryID,
          productName = @productName, description = @description,
-         isActive = @isActive, updatedAt = GETDATE()
+         isActive    = @isActive,    updatedAt   = GETDATE()
        WHERE productID = @id`,
       {
         id:          { type: sql.Int,      value: id },
@@ -100,9 +112,10 @@ const updateProduct = async (req, res, next) => {
         isActive:    { type: sql.Bit,      value: isActive !== false ? 1 : 0 },
       }
     );
+    await auditLog(req, 'UPDATE', 'products', id, oldRecord, req.body);
     res.json({ message: 'Product updated.' });
   } catch (err) { next(err); }
-}
+};
 
 // ── Reference data ─────────────────────────────────────────────
 
@@ -114,18 +127,7 @@ const getCategories = async (req, res, next) => {
     );
     res.json(result.recordset);
   } catch (err) { next(err); }
-}
-
-const getSuppliers = async (req, res, next) => {
-  try {
-    const result = await query(
-      `SELECT supplierID, supplierName, contactName, city, country,
-              commissionRate, isActive
-       FROM   suppliers WHERE isActive = 1 ORDER BY supplierName`
-    );
-    res.json(result.recordset);
-  } catch (err) { next(err); }
-}
+};
 
 const getDestinations = async (req, res, next) => {
   try {
@@ -135,7 +137,7 @@ const getDestinations = async (req, res, next) => {
     );
     res.json(result.recordset);
   } catch (err) { next(err); }
-}
+};
 
 const getClassTypes = async (req, res, next) => {
   try {
@@ -144,7 +146,7 @@ const getClassTypes = async (req, res, next) => {
     );
     res.json(result.recordset);
   } catch (err) { next(err); }
-}
+};
 
 const getBookingFees = async (req, res, next) => {
   try {
@@ -153,9 +155,9 @@ const getBookingFees = async (req, res, next) => {
     );
     res.json(result.recordset);
   } catch (err) { next(err); }
-}
+};
 
 export {
   getAllProducts, getProductById, createProduct, updateProduct,
-  getCategories, getSuppliers, getDestinations, getClassTypes, getBookingFees,
+  getCategories, getDestinations, getClassTypes, getBookingFees,
 };

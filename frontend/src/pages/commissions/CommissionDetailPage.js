@@ -1,35 +1,36 @@
 import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box, Grid, Card, CardContent, CardHeader, Typography,
-  Button, Alert, Skeleton, Divider, Avatar,
+  Box, Card, CardContent, CardHeader, Typography,
+  Button, Alert, Skeleton, Divider,
   Table, TableHead, TableRow, TableCell, TableBody,
   Chip, MenuItem, TextField, InputAdornment,
-  CircularProgress, Drawer, IconButton, Switch, FormControlLabel,
+  CircularProgress, Drawer, IconButton,
 } from '@mui/material';
 import {
-  ArrowBack, AccountBalance, Person, AttachMoney,
-  CheckCircle, Close, Star,
+  ArrowBack, AccountBalance, Business, AttachMoney,
+  CheckCircle, Close, Warning,
 } from '@mui/icons-material';
 import AppLayout from '../../components/layout/AppLayout';
 import StatusChip from '../../components/common/StatusChip';
-import { useCommissions } from '../../hooks/useModules';
 import { commissionsApi } from '../../api/index.js';
 import { useAuth } from '../../store/AuthContext';
 import { KUKAT } from '../../styles/theme';
 
-const InfoRow = ({ label, value }) => {
-  return (
-    <Box sx={{
-      display: 'flex', justifyContent: 'space-between', py: 1.2,
-      borderBottom: `1px solid ${KUKAT.border}`,
-      '&:last-child': { borderBottom: 'none' },
-    }}>
-      <Typography variant="body2" sx={{ color: KUKAT.textMuted, fontWeight: 500 }}>{label}</Typography>
-      <Typography variant="body2" sx={{ color: KUKAT.navy, fontWeight: 600 }}>{value ?? '—'}</Typography>
-    </Box>
-  );
-}
+const InfoRow = ({ label, value }) => (
+  <Box sx={{
+    display: 'flex', justifyContent: 'space-between', py: 1.2,
+    borderBottom: `1px solid ${KUKAT.border}`,
+    '&:last-child': { borderBottom: 'none' },
+  }}>
+    <Typography variant="body2" sx={{ color: KUKAT.textMuted, fontWeight: 500 }}>
+      {label}
+    </Typography>
+    <Typography variant="body2" sx={{ color: KUKAT.navy, fontWeight: 600 }}>
+      {value ?? '—'}
+    </Typography>
+  </Box>
+);
 
 const fmt = (n) =>
   n != null
@@ -37,16 +38,18 @@ const fmt = (n) =>
     : '—';
 
 export default function CommissionDetailPage() {
-  const { id }     = useParams();
-  const navigate   = useNavigate();
-  const { canApprove, isAccountant } = useAuth();
+  const { id }   = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
-  // Reuse useCommissions but fetch single record via getById
+  const canApprove = ['superadmin', 'manager'].includes(user?.role);
+  const canRecord  = ['superadmin', 'accountant'].includes(user?.role);
+
   const [commission, setCommission] = useState(null);
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState(null);
 
-  const fetch = useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
       const { data } = await commissionsApi.getById(id);
@@ -56,7 +59,7 @@ export default function CommissionDetailPage() {
     } finally { setLoading(false); }
   }, [id]);
 
-  React.useEffect(() => { fetch(); }, [fetch]);
+  React.useEffect(() => { load(); }, [load]);
 
   const [drawer,    setDrawer]    = useState(false);
   const [saving,    setSaving]    = useState(false);
@@ -64,33 +67,34 @@ export default function CommissionDetailPage() {
   const [approving, setApproving] = useState(false);
 
   const [payForm, setPayForm] = useState({
-    paymentAmount: '', paymentMethod: 'TRANSFER',
-    paymentDate: new Date().toISOString().split('T')[0],
-    reference: '', isBonus: false, bonusReason: '',
+    paymentAmount:   '',
+    paymentMethod:   'TRANSFER',
+    paymentDate:     new Date().toISOString().split('T')[0],
+    processedBy:    '',
+    reference: '',
   });
-  const setP = (f) => (e) =>
-    setPayForm(p => ({ ...p, [f]: e.target?.value ?? e }));
+  const setP = (f) => (e) => setPayForm(p => ({ ...p, [f]: e.target.value }));
 
   const handleApprove = useCallback(async () => {
-    setApproving(true);
+    setApproving(true); setSaveErr('');
     try {
       await commissionsApi.approve(id);
-      fetch();
+      load();
     } catch (e) {
       setSaveErr(e.response?.data?.message || 'Failed to approve.');
     } finally { setApproving(false); }
-  }, [id, fetch]);
+  }, [id, load]);
 
   const handlePayment = useCallback(async () => {
     setSaving(true); setSaveErr('');
     try {
       await commissionsApi.addPayment(id, payForm);
       setDrawer(false);
-      fetch();
+      load();
     } catch (e) {
       setSaveErr(e.response?.data?.message || 'Failed to record payment.');
     } finally { setSaving(false); }
-  }, [id, payForm, fetch]);
+  }, [id, payForm, load]);
 
   if (loading) return (
     <AppLayout title="Commission detail">
@@ -106,9 +110,15 @@ export default function CommissionDetailPage() {
   );
 
   const c = commission || {};
+  const isOverdue = c.isOverdue;
+  const dueDate   = c.dueDate
+    ? new Date(c.dueDate).toLocaleDateString('en-CA')
+    : null;
 
   return (
-    <AppLayout title={`Commission #${c.commissionID}`} subtitle={c.agentName}>
+    <AppLayout
+      title={`Commission #${c.commissionID}`}
+      subtitle={c.supplierName || c.agentName}>
 
       {/* ── Back + actions ─────────────────────────────────── */}
       <Box sx={{
@@ -124,33 +134,40 @@ export default function CommissionDetailPage() {
           Back to commissions
         </Button>
         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-          {c.status === 'pending' && canApprove() && (
+          {/* Overdue warning badge */}
+          {isOverdue && (
+            <Chip icon={<Warning />} label="Overdue" size="small"
+              sx={{ background: '#FEE2E2', color: '#DC2626', fontWeight: 600 }} />
+          )}
+          {c.status === 'pending' && canApprove && (
             <Button variant="outlined" color="success" size="small"
               startIcon={<CheckCircle />} disabled={approving}
               onClick={handleApprove}>
-              {approving ? <CircularProgress size={16} /> : 'Approve'}
+              {approving ? <CircularProgress size={16} /> : 'Verify'}
             </Button>
           )}
-          {c.status === 'approved' && (isAccountant() || canApprove()) && (
+          {c.status === 'approved' && canRecord && (
             <Button variant="contained" startIcon={<AttachMoney />} size="small"
               onClick={() => { setSaveErr(''); setDrawer(true); }}>
-              Record payment
+              Record receipt
             </Button>
           )}
         </Box>
       </Box>
 
-      {saveErr && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSaveErr('')}>{saveErr}</Alert>}
+      {saveErr && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSaveErr('')}>
+          {saveErr}
+        </Alert>
+      )}
 
-      {/* ── Main layout ────────────────────────────────────── */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 
-        {/* Commission overview + Agent side by side */}
+        {/* ── Commission overview + Supplier side by side ──── */}
         <Box sx={{
           display: 'grid',
           gridTemplateColumns: { xs: '1fr', md: '7fr 5fr' },
-          gap: 2.5,
-          alignItems: 'start',
+          gap: 2.5, alignItems: 'start',
         }}>
 
           {/* Commission overview */}
@@ -168,65 +185,93 @@ export default function CommissionDetailPage() {
               <InfoRow label="Booking base price" value={fmt(c.basePrice)} />
               <InfoRow label="Invoice total"      value={fmt(c.invoiceTotal)} />
               <InfoRow label="Invoice status"     value={c.invoiceStatus} />
+              <InfoRow label="Trip end"
+                value={c.tripEnd
+                  ? new Date(c.tripEnd).toLocaleDateString('en-CA')
+                  : null} />
+              {/* Due date with overdue highlight */}
+              <Box sx={{
+                display: 'flex', justifyContent: 'space-between', py: 1.2,
+                borderBottom: `1px solid ${KUKAT.border}`,
+              }}>
+                <Typography variant="body2" sx={{ color: KUKAT.textMuted, fontWeight: 500 }}>
+                  Due date
+                </Typography>
+                <Typography variant="body2" fontWeight={600}
+                  sx={{ color: isOverdue ? '#DC2626' : KUKAT.navy }}>
+                  {dueDate ?? '—'}
+                  {isOverdue && ' ⚠ Overdue'}
+                </Typography>
+              </Box>
               <InfoRow label="Created"
-                value={c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-CA') : null} />
+                value={c.createdAt
+                  ? new Date(c.createdAt).toLocaleDateString('en-CA')
+                  : null} />
               {c.approvedAt && (
-                <InfoRow label="Approved"
+                <InfoRow label="Verified"
                   value={new Date(c.approvedAt).toLocaleDateString('en-CA')} />
               )}
+              <InfoRow label="Agent (sale made by)" value={c.agentName} />
             </CardContent>
           </Card>
 
-          {/* Agent card */}
+          {/* ← Supplier card — replaces Agent card */}
           <Card>
             <CardHeader
-              avatar={<Person sx={{ color: KUKAT.teal }} />}
-              title="Agent"
-              titleTypographyProps={{ variant: 'h6', sx: { fontSize: '0.95rem', color: KUKAT.navy } }}
+              avatar={<Business sx={{ color: KUKAT.teal }} />}
+              title="Supplier"
+              titleTypographyProps={{
+                variant: 'h6', sx: { fontSize: '0.95rem', color: KUKAT.navy }
+              }}
             />
             <CardContent sx={{ pt: 0 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                <Avatar sx={{
-                  width: 44, height: 44, fontSize: '1rem', fontWeight: 700,
-                  background: `linear-gradient(135deg, ${KUKAT.amber}, ${KUKAT.amberDark})`,
-                  color: KUKAT.navy,
-                }}>
-                  {c.agentName?.split(' ').map(n => n[0]).join('')}
-                </Avatar>
-                <Box>
-                  <Typography fontWeight={700} sx={{ color: KUKAT.navy }}>{c.agentName}</Typography>
-                  <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>
-                    Code: {c.agentCode}
-                  </Typography>
-                </Box>
-              </Box>
+              <Typography fontWeight={700} sx={{ color: KUKAT.navy, mb: 0.5 }}>
+                {c.supplierName ?? '—'}
+              </Typography>
+              <Typography variant="body2" sx={{ color: KUKAT.textMuted, mb: 1.5 }}>
+                Commission rate: {parseFloat(c.commissionRate || 0).toFixed(1)}%
+              </Typography>
               <Divider sx={{ mb: 1.5 }} />
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>
-                  Commission earned
+                  Amount owed to agency
                 </Typography>
                 <Typography variant="body2" fontWeight={700}
                   sx={{ color: '#15803D', fontSize: '1rem' }}>
                   {fmt(c.commissionAmount)}
                 </Typography>
               </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>
+                  Due by
+                </Typography>
+                <Typography variant="body2" fontWeight={600}
+                  sx={{ color: isOverdue ? '#DC2626' : KUKAT.navy }}>
+                  {dueDate ?? '—'}
+                </Typography>
+              </Box>
+              <Button size="small" variant="outlined" fullWidth sx={{ mt: 2 }}
+                onClick={() => navigate(`/suppliers/${c.supplierID}`)}>
+                View supplier →
+              </Button>
             </CardContent>
           </Card>
         </Box>
 
-        {/* Payment history — full width */}
+        {/* ── Payment history ────────────────────────────────── */}
         <Card>
           <CardHeader
             avatar={<AttachMoney sx={{ color: KUKAT.amber }} />}
-            title="Payment history"
+            title="Receipt history"
             titleTypographyProps={{ variant: 'h6', sx: { color: KUKAT.navy } }}
           />
           <CardContent sx={{ pt: 0 }}>
             {(c.payments ?? []).length === 0 ? (
               <Typography variant="body2"
                 sx={{ color: KUKAT.textMuted, py: 2, textAlign: 'center' }}>
-                No payments recorded yet.
-                {c.status === 'approved' && ' Use "Record payment" above to pay this commission.'}
+                No receipts recorded yet.
+                {c.status === 'approved' &&
+                  ' Use "Record receipt" above once payment is received from the supplier.'}
               </Typography>
             ) : (
               <Table size="small">
@@ -234,8 +279,8 @@ export default function CommissionDetailPage() {
                   <TableRow>
                     <TableCell>Date</TableCell>
                     <TableCell>Method</TableCell>
-                    <TableCell>Reference</TableCell>
-                    <TableCell>Type</TableCell>
+                    <TableCell>Ref #</TableCell>
+                    <TableCell>Received from</TableCell>
                     <TableCell align="right">Amount</TableCell>
                     <TableCell>Status</TableCell>
                   </TableRow>
@@ -253,21 +298,11 @@ export default function CommissionDetailPage() {
                           sx={{ fontSize: '0.7rem', height: 20, borderRadius: '4px',
                             background: `${KUKAT.navy}10`, color: KUKAT.navy }} />
                       </TableCell>
-                      <TableCell sx={{ color: KUKAT.textMuted }}>{p.reference || '—'}</TableCell>
-                      <TableCell>
-                        {p.isBonus ? (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <Star sx={{ fontSize: 14, color: KUKAT.amber }} />
-                            <Typography variant="caption"
-                              sx={{ color: KUKAT.amber, fontWeight: 600 }}>
-                              Bonus
-                            </Typography>
-                          </Box>
-                        ) : (
-                          <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>
-                            Regular
-                          </Typography>
-                        )}
+                      <TableCell sx={{ color: KUKAT.textMuted }}>
+                        {p.reference || '—'}
+                      </TableCell>
+                      <TableCell sx={{ color: KUKAT.textMuted }}>
+                        {p.processedBy || '—'}
                       </TableCell>
                       <TableCell align="right">
                         <Typography fontWeight={700} sx={{ color: '#15803D' }}>
@@ -284,96 +319,73 @@ export default function CommissionDetailPage() {
         </Card>
       </Box>
 
-      {/* ── Record payment drawer ──────────────────────────── */}
+      {/* ── Record receipt drawer ───────────────────────────── */}
       <Drawer anchor="right" open={drawer}
         onClose={() => !saving && setDrawer(false)}
         PaperProps={{ sx: { width: { xs: '100%', sm: 520 }, p: 3 } }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Box sx={{
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', mb: 3,
+        }}>
           <Box>
-            <Typography variant="h5" sx={{ color: KUKAT.navy }}>Record commission payment</Typography>
+            <Typography variant="h5" sx={{ color: KUKAT.navy }}>
+              Record receipt from supplier
+            </Typography>
             <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>
-              To: {c.agentName} · Amount due: {fmt(c.commissionAmount)}
+              Commission #{c.commissionID} · Expected: {fmt(c.commissionAmount)}
             </Typography>
           </Box>
-          <IconButton onClick={() => setDrawer(false)} disabled={saving}><Close /></IconButton>
+          <IconButton onClick={() => setDrawer(false)} disabled={saving}>
+            <Close />
+          </IconButton>
         </Box>
 
         {saveErr && <Alert severity="error" sx={{ mb: 2 }}>{saveErr}</Alert>}
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-
           <Box sx={{
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
             gap: 2,
           }}>
-            <TextField fullWidth label="Amount *" type="number"
+            <TextField fullWidth label="Amount received *" type="number"
               value={payForm.paymentAmount} onChange={setP('paymentAmount')}
-              InputProps={{ startAdornment: <InputAdornment position="start">$</InputAdornment> }} />
+              InputProps={{
+                startAdornment: <InputAdornment position="start">$</InputAdornment>
+              }} />
             <TextField select fullWidth label="Method *"
               value={payForm.paymentMethod} onChange={setP('paymentMethod')}>
-              {['TRANSFER', 'CHEQUE', 'CASH'].map(m =>
-                <MenuItem key={m} value={m}>{m}</MenuItem>)}
+              {['TRANSFER', 'CHEQUE', 'CASH', 'EFT'].map(m =>
+                <MenuItem key={m} value={m}>{m}</MenuItem>
+              )}
             </TextField>
-            <TextField fullWidth label="Payment date" type="date"
+            <TextField fullWidth label="Receipt date" type="date"
               value={payForm.paymentDate} onChange={setP('paymentDate')}
               InputLabelProps={{ shrink: true }} />
-            <TextField fullWidth label="Reference"
-              value={payForm.reference} onChange={setP('reference')} />
+            <TextField fullWidth label="Reference number"
+              value={payForm.reference} onChange={setP('reference')}
+              placeholder="e.g. CHQ-00123" />
           </Box>
 
-          <FormControlLabel
-            control={
-              <Switch checked={payForm.isBonus}
-                onChange={(e) => setPayForm(p => ({ ...p, isBonus: e.target.checked }))} />
-            }
-            label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <Star sx={{ fontSize: 16, color: KUKAT.amber }} />
-                <Typography variant="body2" fontWeight={500}>This is a bonus payment</Typography>
-              </Box>
-            }
-          />
-
-          {payForm.isBonus && (
-            <TextField fullWidth label="Bonus reason"
-              value={payForm.bonusReason} onChange={setP('bonusReason')}
-              placeholder="e.g. Q4 performance bonus" />
-          )}
+          <TextField fullWidth label="Received from (supplier contact)"
+            value={payForm.processedBy} onChange={setP('processedBy')}
+            placeholder="e.g. John Smith — Accounts Payable" />
 
           <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', pt: 1 }}>
-            <Button
-              variant="outlined"
-              onClick={() => setDrawer(false)}
-              disabled={saving}
-              sx={{
-                borderColor: '#DC2626',
-                color: '#DC2626',
-                '&:hover': {
-                  borderColor: '#B91C1C',
-                  background: '#FEE2E2',
-                },
-              }}
-            >
+            <Button variant="outlined" onClick={() => setDrawer(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button
-              variant="contained"
+            <Button variant="contained"
               disabled={saving || !payForm.paymentAmount}
-              onClick={handlePayment}
-              sx={{
-                color: '#ffffff',
-                '&.Mui-disabled': {
-                  color: '#fff'
-                },
-              }}
-            >
-              {saving ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : 'Record payment'}
+              onClick={handlePayment}>
+              {saving
+                ? <CircularProgress size={20} sx={{ color: '#fff' }} />
+                : 'Record receipt'}
             </Button>
           </Box>
         </Box>
       </Drawer>
 
-    </AppLayout>  
+    </AppLayout>
   );
 }

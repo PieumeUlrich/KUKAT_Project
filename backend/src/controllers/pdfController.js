@@ -264,22 +264,23 @@ const generateInvoicePDF = async (req, res, next) => {
       });
     }
 
-    // ── Footer ────────────────────────────────────────────
-    // Use current Y position instead of fixed footer position
-    const footY = Math.max(chargeRowY + 20, payments.length > 0 ? chargeRowY + 20 : chargeRowY + 20);
+   // ── Footer ────────────────────────────────────────────
+   // Use current Y position instead of fixed footer position
+   const footY = doc.y + 20; // ← use current cursor position after all content
 
-    // Only add footer if it fits on current page — no forced page breaks
-    if (footY + 60 < doc.page.height - 30) {
-    doc.rect(50, footY, pageW, 1).fill(BORDER);
-    doc.fontSize(8).fillColor(GRAY).font('Helvetica')
-        .text('Thank you for choosing KUKAT Travel Agency.', 50, footY + 10, { align: 'center', width: pageW })
-        .text('For questions about this invoice, contact your travel agent.', 50, footY + 22, { align: 'center', width: pageW });
-    doc.fontSize(7).fillColor(GRAY)
-        .text(`Generated ${new Date().toLocaleDateString('en-CA')} · KUKAT Travel Agency · Invoice #${inv.invoiceID}`,
+   if (doc.y + 80 < doc.page.height - 30) {
+   doc.rect(50, footY, pageW, 1).fill(BORDER);
+   doc.fontSize(8).fillColor(GRAY).font('Helvetica')
+      .text('Thank you for choosing KUKAT Travel Agency.', 50, footY + 10,
+            { align: 'center', width: pageW })
+      .text('For questions about this invoice, contact your travel agent.',
+            50, footY + 22, { align: 'center', width: pageW });
+   doc.fontSize(7).fillColor(GRAY)
+      .text(`Generated ${new Date().toLocaleDateString('en-CA')} · KUKAT Travel Agency · Invoice #${inv.invoiceID}`,
             50, footY + 40, { align: 'center', width: pageW });
-    }
+   }
 
-    doc.end();
+   doc.end();
 
   } catch (err) { next(err); }
 };

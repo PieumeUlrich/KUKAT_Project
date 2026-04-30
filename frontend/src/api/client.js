@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: `${process.env.REACT_APP_BACKEND_URL || 'https://localhost:3001'}/api`,
+  baseURL: `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001'}/api`,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -31,7 +31,6 @@ api.interceptors.response.use(
 
     if (error.response?.status === 401 && !original._retry) {
       if (isRefreshing) {
-        // Queue requests while refreshing
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then((token) => {
@@ -40,22 +39,23 @@ api.interceptors.response.use(
         }).catch(err => Promise.reject(err));
       }
 
-      original._retry  = true;
-      isRefreshing     = true;
+      original._retry = true;
+      isRefreshing    = true;
 
       const refreshToken = localStorage.getItem('kukat_refresh');
 
       if (!refreshToken) {
-        // No refresh token — send to login
         localStorage.removeItem('kukat_token');
         localStorage.removeItem('kukat_refresh');
+        localStorage.removeItem('kukat_user');
         window.location.href = '/login';
         return Promise.reject(error);
       }
 
       try {
+        // ← Use same env var for refresh — no hardcoded fallback URL
         const { data } = await axios.post(
-          `${process.env.REACT_APP_BACKEND_URL || 'https://kukat-project1.onrender.com/api'}/auth/refresh`,
+          `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001'}/api/auth/refresh`,
           { refreshToken }
         );
 

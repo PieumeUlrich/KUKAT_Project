@@ -3,44 +3,40 @@ import { query, sql } from '../config/db.js';
 const dateRange = (period) => {
   const now = new Date();
   switch (period) {
-    case 'month':   { const s = new Date(now); s.setDate(s.getDate() - 30);   return { start: s, end: now }; }
-    case 'quarter': { const s = new Date(now); s.setDate(s.getDate() - 90);   return { start: s, end: now }; }
+    case 'month':   { const s = new Date(now); s.setDate(s.getDate() - 30);        return { start: s, end: now }; }
+    case 'quarter': { const s = new Date(now); s.setDate(s.getDate() - 90);        return { start: s, end: now }; }
     case 'year':    { const s = new Date(now); s.setFullYear(s.getFullYear() - 1); return { start: s, end: now }; }
     default:        return { start: new Date('2000-01-01'), end: new Date('2099-12-31') };
   }
 };
 
-// GET /api/dashboard
-// Returns all KPIs needed for the dashboard in one request
 const getDashboard = async (req, res, next) => {
   try {
     const userRole = req.user.role;
     const empID    = req.user.employeeID;
     const { start, end } = dateRange(req.query.period);
 
-    const dateFilter  = `b.bookingDate BETWEEN '${start.toISOString().split('T')[0]}' AND '${end.toISOString().split('T')[0]}'`;
-    const agentBookingFilter    = userRole === 'agent' ? `WHERE ${dateFilter} AND b.employeeID = ${empID}` : `WHERE ${dateFilter}`;
-    const agentCommissionFilter = userRole === 'agent' ? `WHERE c.employeeID = ${empID}` : '';
-    const agentCustomerFilter   = userRole === 'agent' ? `WHERE assignedAgentID = ${empID}` : '';
+    const startStr = start.toISOString().split('T')[0];
+    const endStr   = end.toISOString().split('T')[0];
+    const dateFilter = `b.bookingDate BETWEEN '${startStr}' AND '${endStr}'`;
 
     let queries = [];
-    let queryNames = [];
 
-    // Base queries for all roles
-    if (['superadmin', 'manager', 'accountant'].includes(userRole)) {
+    // ── Superadmin / Manager ──────────────────────────────────
+    if (['superadmin', 'manager'].includes(userRole)) {
       queries = [
         // Booking KPIs
         query(`
           SELECT
-            COUNT(*)                                                              AS total,
-            SUM(CASE WHEN status = 'confirmed'  THEN 1 ELSE 0 END)              AS confirmed,
-            SUM(CASE WHEN status = 'pending'    THEN 1 ELSE 0 END)              AS pending,
-            SUM(CASE WHEN status = 'completed'  THEN 1 ELSE 0 END)              AS completed,
-            SUM(CASE WHEN status = 'cancelled'  THEN 1 ELSE 0 END)              AS cancelled,
+            COUNT(*)                                                                    AS total,
+            SUM(CASE WHEN status = 'confirmed'  THEN 1 ELSE 0 END)                    AS confirmed,
+            SUM(CASE WHEN status = 'pending'    THEN 1 ELSE 0 END)                    AS pending,
+            SUM(CASE WHEN status = 'completed'  THEN 1 ELSE 0 END)                    AS completed,
+            SUM(CASE WHEN status = 'cancelled'  THEN 1 ELSE 0 END)                    AS cancelled,
             ISNULL(SUM(CASE WHEN status != 'cancelled' THEN basePrice ELSE 0 END), 0) AS totalRevenue,
             SUM(CASE WHEN MONTH(bookingDate) = MONTH(GETDATE())
-                      AND YEAR(bookingDate)  = YEAR(GETDATE())  THEN 1 ELSE 0 END) AS thisMonth
-          FROM bookings b ${agentBookingFilter}`
+                      AND YEAR(bookingDate)  = YEAR(GETDATE()) THEN 1 ELSE 0 END)     AS thisMonth
+          FROM bookings b WHERE ${dateFilter}`
         ),
 
         // Invoice KPIs
@@ -52,11 +48,10 @@ const getDashboard = async (req, res, next) => {
             SUM(CASE WHEN i.status = 'partial' THEN 1 ELSE 0 END)                       AS partial,
             ISNULL(SUM(CASE WHEN i.status = 'paid'   THEN i.totalAmount ELSE 0 END), 0) AS totalCollected,
             ISNULL(SUM(CASE WHEN i.status = 'unpaid' THEN i.totalAmount ELSE 0 END), 0) AS totalOutstanding
-          FROM invoices i
-          ${userRole === 'agent' ? `JOIN bookings b ON b.bookingID = i.bookingID WHERE b.employeeID = ${empID}` : ''}`
+          FROM invoices i`
         ),
 
-        // Commission KPIs
+        // Commission KPIs — agency revenue from suppliers (no agent filter)
         query(`
           SELECT
             COUNT(*)                                                                           AS total,
@@ -64,8 +59,11 @@ const getDashboard = async (req, res, next) => {
             SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END)                             AS approved,
             SUM(CASE WHEN status = 'paid'     THEN 1 ELSE 0 END)                             AS paid,
             ISNULL(SUM(CASE WHEN status = 'paid'    THEN commissionAmount ELSE 0 END), 0)    AS totalPaid,
-            ISNULL(SUM(CASE WHEN status = 'pending' THEN commissionAmount ELSE 0 END), 0)    AS totalPending
-          FROM commissions c ${agentCommissionFilter}`
+            ISNULL(SUM(CASE WHEN status = 'pending' THEN commissionAmount ELSE 0 END), 0)    AS totalPending,
+            SUM(CASE WHEN status NOT IN ('paid','cancelled')
+                      AND dueDate IS NOT NULL
+                      AND dueDate < GETDATE() THEN 1 ELSE 0 END)                             AS overdueCount
+          FROM commissions c`
         ),
 
         // Customer KPIs
@@ -74,7 +72,7 @@ const getDashboard = async (req, res, next) => {
             COUNT(*) AS total,
             SUM(CASE WHEN MONTH(createdAt) = MONTH(GETDATE())
                       AND YEAR(createdAt)  = YEAR(GETDATE()) THEN 1 ELSE 0 END) AS newThisMonth
-          FROM customers ${agentCustomerFilter}`
+          FROM customers`
         ),
 
         // Recent bookings (last 8)
@@ -88,7 +86,7 @@ const getDashboard = async (req, res, next) => {
           JOIN   customers c ON c.customerID = b.customerID
           JOIN   products  p ON p.productID  = b.productID
           JOIN   employees e ON e.employeeID = b.employeeID
-          ${agentBookingFilter}
+          WHERE  ${dateFilter}
           ORDER  BY b.bookingDate DESC`
         ),
 
@@ -102,29 +100,30 @@ const getDashboard = async (req, res, next) => {
           JOIN   invoices  i ON i.invoiceID  = py.invoiceID
           JOIN   bookings  b ON b.bookingID  = i.bookingID
           JOIN   customers c ON c.customerID = b.customerID
-          ${userRole === 'agent' ? `WHERE b.employeeID = ${empID}` : ''}
           ORDER  BY py.paymentDate DESC`
         ),
 
-        // Pending commissions awaiting approval
+        // Pending commissions from suppliers (top 5)
         query(`
           SELECT TOP 5
-            c.commissionID, c.commissionAmount, c.commissionRate, c.createdAt,
+            c.commissionID, c.commissionAmount, c.commissionRate,
+            c.createdAt, c.dueDate,
+            s.supplierName,
             e.firstName + ' ' + e.lastName AS agentName,
             e.agentCode
           FROM   commissions c
-          JOIN   employees   e ON e.employeeID = c.employeeID
+          JOIN   suppliers   s ON s.supplierID = c.supplierID
+          JOIN   bookings    b ON b.bookingID  = c.bookingID
+          JOIN   employees   e ON e.employeeID = b.employeeID
           WHERE  c.status = 'pending'
-          ${userRole === 'agent' ? `AND c.employeeID = ${empID}` : ''}
           ORDER  BY c.createdAt DESC`
         ),
       ];
-      queryNames = ['bookingStats', 'invoiceStats', 'commissionStats', 'customerStats', 'recentBookings', 'recentPayments', 'pendingCommissions'];
     }
+
+    // ── HR ────────────────────────────────────────────────────
     else if (userRole === 'hr') {
-      // HR Dashboard - Employee focused metrics
       queries = [
-        // Employee statistics
         query(`
           SELECT
             COUNT(*) AS totalEmployees,
@@ -133,148 +132,121 @@ const getDashboard = async (req, res, next) => {
             SUM(CASE WHEN DATEDIFF(MONTH, hireDate, GETDATE()) <= 12 THEN 1 ELSE 0 END) AS newHiresThisYear
           FROM employees`
         ),
-
-        // Employee distribution by role
         query(`
-          SELECT
-            r.roleName,
-            COUNT(e.employeeID) AS count
-          FROM employees e
-          JOIN roles r ON r.roleID = e.roleID
-          GROUP BY r.roleName
-          ORDER BY count DESC`
+          SELECT r.roleName, COUNT(e.employeeID) AS count
+          FROM   employees e
+          JOIN   roles r ON r.roleID = e.roleID
+          GROUP  BY r.roleName
+          ORDER  BY count DESC`
         ),
-
-        // Recent employee activities (bookings by employees)
         query(`
           SELECT TOP 10
             e.employeeID,
             e.firstName + ' ' + e.lastName AS employeeName,
             e.agentCode,
-            COUNT(b.bookingID) AS bookingCount,
+            COUNT(b.bookingID)          AS bookingCount,
             ISNULL(SUM(b.basePrice), 0) AS totalRevenue
           FROM employees e
-          LEFT JOIN bookings b ON b.employeeID = e.employeeID AND ${dateFilter.replace('b.', '')}
-          GROUP BY e.employeeID, e.firstName, e.lastName, e.agentCode
-          ORDER BY totalRevenue DESC`
+          LEFT JOIN bookings b ON b.employeeID = e.employeeID
+                               AND b.bookingDate BETWEEN '${startStr}' AND '${endStr}'
+          GROUP  BY e.employeeID, e.firstName, e.lastName, e.agentCode
+          ORDER  BY totalRevenue DESC`
         ),
-
-        // Employee performance metrics
         query(`
           SELECT
             COUNT(DISTINCT e.employeeID) AS totalAgents,
-            AVG(bookingCount) AS avgBookingsPerAgent,
-            MAX(bookingCount) AS maxBookingsByAgent
+            AVG(CAST(bookingCount AS FLOAT)) AS avgBookingsPerAgent,
+            MAX(bookingCount)            AS maxBookingsByAgent
           FROM (
-            SELECT
-              e.employeeID,
-              COUNT(b.bookingID) AS bookingCount
-            FROM employees e
-            LEFT JOIN bookings b ON b.employeeID = e.employeeID AND ${dateFilter.replace('b.', '')}
-            WHERE e.roleID = 3  -- Agent role
-            GROUP BY e.employeeID
+            SELECT e.employeeID, COUNT(b.bookingID) AS bookingCount
+            FROM   employees e
+            LEFT   JOIN bookings b ON b.employeeID = e.employeeID
+                                   AND b.bookingDate BETWEEN '${startStr}' AND '${endStr}'
+            WHERE  e.roleID = 3
+            GROUP  BY e.employeeID
           ) agentStats`
         ),
       ];
-      queryNames = ['employeeStats', 'roleDistribution', 'employeePerformance', 'agentMetrics'];
     }
+
+    // ── Accountant ────────────────────────────────────────────
     else if (userRole === 'accountant') {
-      // Accountant Dashboard - Financial focused metrics
       queries = [
-        // Financial overview
         query(`
           SELECT
             COUNT(*) AS totalInvoices,
-            ISNULL(SUM(CASE WHEN status = 'paid' THEN totalAmount ELSE 0 END), 0) AS totalCollected,
-            ISNULL(SUM(CASE WHEN status = 'unpaid' THEN totalAmount ELSE 0 END), 0) AS totalOutstanding,
+            ISNULL(SUM(CASE WHEN status = 'paid'    THEN totalAmount ELSE 0 END), 0) AS totalCollected,
+            ISNULL(SUM(CASE WHEN status = 'unpaid'  THEN totalAmount ELSE 0 END), 0) AS totalOutstanding,
             ISNULL(SUM(CASE WHEN status = 'partial' THEN totalAmount ELSE 0 END), 0) AS totalPartial
           FROM invoices`
         ),
-
-        // Payment methods breakdown
         query(`
           SELECT
             paymentMethod,
             COUNT(*) AS transactionCount,
             ISNULL(SUM(amountPaid), 0) AS totalAmount
           FROM payments
-          WHERE paymentDate BETWEEN '${start.toISOString().split('T')[0]}' AND '${end.toISOString().split('T')[0]}'
+          WHERE paymentDate BETWEEN '${startStr}' AND '${endStr}'
           GROUP BY paymentMethod
           ORDER BY totalAmount DESC`
         ),
-
-        // Commission payments
+        // Commission KPIs — agency income from suppliers
         query(`
           SELECT
             COUNT(*) AS totalCommissions,
-            ISNULL(SUM(CASE WHEN status = 'paid' THEN commissionAmount ELSE 0 END), 0) AS totalPaidCommissions,
+            ISNULL(SUM(CASE WHEN status = 'paid'    THEN commissionAmount ELSE 0 END), 0) AS totalPaidCommissions,
             ISNULL(SUM(CASE WHEN status = 'pending' THEN commissionAmount ELSE 0 END), 0) AS pendingCommissions,
-            AVG(commissionRate) AS avgCommissionRate
+            AVG(commissionRate) AS avgCommissionRate,
+            SUM(CASE WHEN status NOT IN ('paid','cancelled')
+                      AND dueDate IS NOT NULL
+                      AND dueDate < GETDATE() THEN 1 ELSE 0 END)                          AS overdueCount
           FROM commissions`
         ),
-
-        // Monthly revenue trend (last 12 months)
         query(`
           SELECT
-            YEAR(paymentDate) AS year,
+            YEAR(paymentDate)  AS year,
             MONTH(paymentDate) AS month,
             ISNULL(SUM(amountPaid), 0) AS monthlyRevenue
           FROM payments
           WHERE paymentDate >= DATEADD(MONTH, -12, GETDATE())
-          GROUP BY YEAR(paymentDate), MONTH(paymentDate)
-          ORDER BY year DESC, month DESC`
+          GROUP  BY YEAR(paymentDate), MONTH(paymentDate)
+          ORDER  BY year DESC, month DESC`
         ),
-
-        // Outstanding invoices
         query(`
           SELECT TOP 10
-            i.invoiceID,
-            i.totalAmount,
-            i.status,
+            i.invoiceID, i.totalAmount, i.status,
             c.firstName + ' ' + c.lastName AS customerName,
             DATEDIFF(DAY, i.createdAt, GETDATE()) AS daysOutstanding
-          FROM invoices i
-          JOIN bookings b ON b.bookingID = i.bookingID
-          JOIN customers c ON c.customerID = b.customerID
-          WHERE i.status IN ('unpaid', 'partial')
-          ORDER BY i.createdAt ASC`
+          FROM   invoices   i
+          JOIN   bookings   b ON b.bookingID  = i.bookingID
+          JOIN   customers  c ON c.customerID = b.customerID
+          WHERE  i.status IN ('unpaid', 'partial')
+          ORDER  BY i.createdAt ASC`
         ),
       ];
-      queryNames = ['financialOverview', 'paymentMethods', 'commissionPayments', 'revenueTrend', 'outstandingInvoices'];
     }
-    
+
+    // ── Agent ─────────────────────────────────────────────────
     else if (userRole === 'agent') {
       queries = [
-        // Booking KPIs — filtered by agent
+        // Booking KPIs — agent's own bookings only
         query(`
           SELECT
-            COUNT(*)                                                              AS total,
-            SUM(CASE WHEN status = 'confirmed'  THEN 1 ELSE 0 END)              AS confirmed,
-            SUM(CASE WHEN status = 'pending'    THEN 1 ELSE 0 END)              AS pending,
-            SUM(CASE WHEN status = 'completed'  THEN 1 ELSE 0 END)              AS completed,
-            SUM(CASE WHEN status = 'cancelled'  THEN 1 ELSE 0 END)              AS cancelled,
+            COUNT(*)                                                                    AS total,
+            SUM(CASE WHEN status = 'confirmed'  THEN 1 ELSE 0 END)                    AS confirmed,
+            SUM(CASE WHEN status = 'pending'    THEN 1 ELSE 0 END)                    AS pending,
+            SUM(CASE WHEN status = 'completed'  THEN 1 ELSE 0 END)                    AS completed,
+            SUM(CASE WHEN status = 'cancelled'  THEN 1 ELSE 0 END)                    AS cancelled,
             ISNULL(SUM(CASE WHEN status != 'cancelled' THEN basePrice ELSE 0 END), 0) AS totalRevenue,
             SUM(CASE WHEN MONTH(bookingDate) = MONTH(GETDATE())
-                      AND YEAR(bookingDate)  = YEAR(GETDATE()) THEN 1 ELSE 0 END) AS thisMonth
+                      AND YEAR(bookingDate)  = YEAR(GETDATE()) THEN 1 ELSE 0 END)     AS thisMonth
           FROM bookings b
           WHERE b.employeeID = ${empID}
-          AND b.bookingDate BETWEEN '${start.toISOString().split('T')[0]}' AND '${end.toISOString().split('T')[0]}'`
+          AND   b.bookingDate BETWEEN '${startStr}' AND '${endStr}'`
         ),
 
-        // Commission KPIs — filtered by agent
-        query(`
-          SELECT
-            COUNT(*)                                                                        AS total,
-            SUM(CASE WHEN status = 'pending'  THEN 1 ELSE 0 END)                          AS pending,
-            SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END)                          AS approved,
-            SUM(CASE WHEN status = 'paid'     THEN 1 ELSE 0 END)                          AS paid,
-            ISNULL(SUM(CASE WHEN status = 'paid'    THEN commissionAmount ELSE 0 END), 0) AS totalPaid,
-            ISNULL(SUM(CASE WHEN status = 'pending' THEN commissionAmount ELSE 0 END), 0) AS totalPending
-          FROM commissions c
-          WHERE c.employeeID = ${empID}`
-        ),
-
-        // Customer KPIs — filtered by agent
+        // Customer KPIs — agent's assigned customers only
+        // Commissions removed from agent dashboard — commissions are agency revenue
         query(`
           SELECT
             COUNT(*) AS total,
@@ -284,7 +256,19 @@ const getDashboard = async (req, res, next) => {
           WHERE assignedAgentID = ${empID}`
         ),
 
-        // Recent bookings — filtered by agent
+        // Invoice KPIs — agent's bookings only
+        query(`
+          SELECT
+            COUNT(*)                                                                      AS total,
+            SUM(CASE WHEN i.status = 'paid'    THEN 1 ELSE 0 END)                       AS paid,
+            SUM(CASE WHEN i.status = 'unpaid'  THEN 1 ELSE 0 END)                       AS unpaid,
+            ISNULL(SUM(CASE WHEN i.status = 'paid' THEN i.totalAmount ELSE 0 END), 0)   AS totalCollected
+          FROM   invoices i
+          JOIN   bookings b ON b.bookingID = i.bookingID
+          WHERE  b.employeeID = ${empID}`
+        ),
+
+        // Recent bookings — agent's only
         query(`
           SELECT TOP 8
             b.bookingID, b.bookingDate, b.status, b.basePrice, b.tripStart,
@@ -297,15 +281,14 @@ const getDashboard = async (req, res, next) => {
           ORDER  BY b.bookingDate DESC`
         ),
       ];
-      queryNames = ['bookingStats', 'commissionStats', 'customerStats', 'recentBookings'];
     }
 
     const results = await Promise.all(queries);
 
-    // Build response based on role
+    // ── Build response ────────────────────────────────────────
     let response = {};
 
-    if (['superadmin', 'manager', 'accountant'].includes(userRole)) {
+    if (['superadmin', 'manager'].includes(userRole)) {
       response = {
         bookings:           results[0].recordset[0],
         invoices:           results[1].recordset[0],
@@ -326,19 +309,18 @@ const getDashboard = async (req, res, next) => {
     }
     else if (userRole === 'accountant') {
       response = {
-        financialOverview:    results[0].recordset[0],
-        paymentMethods:       results[1].recordset,
-        commissionPayments:   results[2].recordset[0],
-        revenueTrend:         results[3].recordset,
-        outstandingInvoices:  results[4].recordset,
+        financialOverview:   results[0].recordset[0],
+        paymentMethods:      results[1].recordset,
+        commissionPayments:  results[2].recordset[0],
+        revenueTrend:        results[3].recordset,
+        outstandingInvoices: results[4].recordset,
       };
     }
-
     else if (userRole === 'agent') {
       response = {
         bookings:       results[0].recordset[0],
-        commissions:    results[1].recordset[0],
-        customers:      results[2].recordset[0],
+        customers:      results[1].recordset[0],
+        invoices:       results[2].recordset[0],
         recentBookings: results[3].recordset,
       };
     }

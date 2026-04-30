@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Box, Grid, Card, CardContent, CardHeader, Typography, Button,
+  Box, Card, CardContent, CardHeader, Typography, Button,
   Alert, Skeleton, Drawer, IconButton, Divider, Avatar,
-  Table, TableHead, TableRow, TableCell, TableBody, Chip,
+  Table, TableHead, TableRow, TableCell, TableBody,
   MenuItem, TextField, Dialog, DialogTitle, DialogContent, DialogActions,
+  CircularProgress,
 } from '@mui/material';
 import { ArrowBack, Edit, SwapHoriz, CreditCard, Close } from '@mui/icons-material';
 import AppLayout from '../../components/layout/AppLayout';
@@ -13,23 +14,30 @@ import CustomerForm from './CustomerForm';
 import { useCustomer } from '../../hooks/useModules';
 import { customersApi, staffApi } from '../../api/index';
 import { useAuth } from '../../store/AuthContext';
-
 import { KUKAT } from '../../styles/theme';
 
-const InfoRow = ({ label, value }) => {
-  return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1,
-      borderBottom: `1px solid ${KUKAT.border}`, '&:last-child': { borderBottom: 'none' } }}>
-      <Typography variant="body2" sx={{ color: KUKAT.textMuted, fontWeight: 500 }}>{label}</Typography>
-      <Typography variant="body2" sx={{ color: KUKAT.navy, fontWeight: 600 }}>{value ?? '—'}</Typography>
-    </Box>
-  );
-}
+const InfoRow = ({ label, value }) => (
+  <Box sx={{
+    display: 'flex', justifyContent: 'space-between', py: 1,
+    borderBottom: `1px solid ${KUKAT.border}`,
+    '&:last-child': { borderBottom: 'none' },
+  }}>
+    <Typography variant="body2" sx={{ color: KUKAT.textMuted, fontWeight: 500 }}>
+      {label}
+    </Typography>
+    <Typography variant="body2" sx={{ color: KUKAT.navy, fontWeight: 600 }}>
+      {value ?? '—'}
+    </Typography>
+  </Box>
+);
 
 export default function CustomerDetailPage() {
-  const { id }  = useParams();
+  const { id }   = useParams();
   const navigate = useNavigate();
-  const { isHR, isAdmin, isManager } = useAuth();
+  const { user } = useAuth();
+
+  const canReassign = ['superadmin', 'manager', 'hr'].includes(user?.role);
+
   const { customer, loading, error, refetch } = useCustomer(id);
 
   const [editOpen,     setEditOpen]     = useState(false);
@@ -41,35 +49,57 @@ export default function CustomerDetailPage() {
 
   useEffect(() => {
     if (reassignOpen) {
-      staffApi.getAll({ role: 'agent' }).then(({ data }) => {
-        const list = data.employees ?? data.data ?? data;
-        setAgents(Array.isArray(list) ? list : []);
-      }).catch(() => {});
+      staffApi.getAll({ role: 'agent', limit: 'all' })
+        .then(({ data }) => {
+          const list = data.employees ?? data.data ?? data;
+          setAgents(Array.isArray(list) ? list : []);
+        })
+        .catch(() => {});
     }
   }, [reassignOpen]);
 
   const handleEdit = useCallback(async (data) => {
     setSaving(true); setSaveErr('');
-    try { await customersApi.update(id, data); setEditOpen(false); refetch(); }
-    catch (err) { setSaveErr(err.response?.data?.message || 'Update failed.'); }
-    finally { setSaving(false); }
+    try {
+      await customersApi.update(id, data);
+      setEditOpen(false);
+      refetch();
+    } catch (err) {
+      setSaveErr(err.response?.data?.message || 'Update failed.');
+    } finally { setSaving(false); }
   }, [id, refetch]);
 
   const handleReassign = useCallback(async () => {
     if (!newAgent) return;
     setSaving(true); setSaveErr('');
-    try { await customersApi.reassign(id, newAgent); setReassignOpen(false); refetch(); }
-    catch (err) { setSaveErr(err.response?.data?.message || 'Reassign failed.'); }
-    finally { setSaving(false); }
+    try {
+      // ← Pass as object matching backend req.body.agentID
+      await customersApi.reassign(id, { agentID: newAgent });
+      setReassignOpen(false);
+      setNewAgent('');
+      refetch();
+    } catch (err) {
+      setSaveErr(err.response?.data?.message || 'Reassign failed.');
+    } finally { setSaving(false); }
   }, [id, newAgent, refetch]);
 
-  if (loading) return <AppLayout title="Customer"><Skeleton variant="rounded" height={400} /></AppLayout>;
-  if (error)   return <AppLayout title="Customer"><Alert severity="error">{error}</Alert></AppLayout>;
+  if (loading) return (
+    <AppLayout title="Customer">
+      <Skeleton variant="rounded" height={400} />
+    </AppLayout>
+  );
+  if (error) return (
+    <AppLayout title="Customer">
+      <Alert severity="error">{error}</Alert>
+    </AppLayout>
+  );
 
   const c = customer || {};
 
   return (
-    <AppLayout title={`${c.firstName} ${c.lastName}`} subtitle={c.email}>
+    <AppLayout
+      title={`${c.firstName || ''} ${c.lastName || ''}`}
+      subtitle={c.email}>
 
       {/* ── Back + actions ─────────────────────────────────── */}
       <Box sx={{
@@ -85,30 +115,33 @@ export default function CustomerDetailPage() {
           Back
         </Button>
         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
-          {(isHR() || isAdmin() || isManager()) && (
+          {canReassign && (
             <Button startIcon={<SwapHoriz />} variant="outlined" size="small"
-              onClick={() => setReassignOpen(true)}>
+              onClick={() => { setSaveErr(''); setReassignOpen(true); }}>
               Reassign agent
             </Button>
           )}
-          <Button startIcon={<Edit />} variant="contained" size="small"
+          <Button startIcon={<Edit />} variant="outlined" size="small"
             onClick={() => { setSaveErr(''); setEditOpen(true); }}>
             Edit
           </Button>
         </Box>
       </Box>
 
-      {saveErr && <Alert severity="error" sx={{ mb: 2 }}>{saveErr}</Alert>}
+      {saveErr && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSaveErr('')}>
+          {saveErr}
+        </Alert>
+      )}
 
       {/* ── Main layout ────────────────────────────────────── */}
       <Box sx={{
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', md: '1fr 2fr' },
-        gap: 2.5,
-        alignItems: 'start',
+        gap: 2.5, alignItems: 'start',
       }}>
 
-        {/* ── Left column: Profile + Address ─────────────── */}
+        {/* ── Left column ────────────────────────────────── */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 
           <Card>
@@ -127,8 +160,8 @@ export default function CustomerDetailPage() {
                 {c.email}
               </Typography>
               <Divider sx={{ mb: 2 }} />
-              <InfoRow label="Home phone"    value={c.homePhone} />
-              <InfoRow label="Business ph."  value={c.businessPhone} />
+              <InfoRow label="Home phone"   value={c.homePhone} />
+              <InfoRow label="Business ph." value={c.businessPhone} />
               <InfoRow label="Date of birth"
                 value={c.birthDate
                   ? new Date(c.birthDate).toLocaleDateString('en-CA')
@@ -138,7 +171,9 @@ export default function CustomerDetailPage() {
 
           <Card>
             <CardHeader title="Address"
-              titleTypographyProps={{ variant: 'h6', sx: { color: KUKAT.navy, fontSize: '0.95rem' } }} />
+              titleTypographyProps={{
+                variant: 'h6', sx: { color: KUKAT.navy, fontSize: '0.95rem' }
+              }} />
             <CardContent sx={{ pt: 0 }}>
               <InfoRow label="Street"   value={c.address} />
               <InfoRow label="City"     value={c.city} />
@@ -148,16 +183,33 @@ export default function CustomerDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Assigned agent */}
+          <Card>
+            <CardHeader title="Assigned agent"
+              titleTypographyProps={{
+                variant: 'h6', sx: { color: KUKAT.navy, fontSize: '0.95rem' }
+              }} />
+            <CardContent sx={{ pt: 0 }}>
+              <InfoRow label="Name"
+                value={c.agentFirstName
+                  ? `${c.agentFirstName} ${c.agentLastName}`
+                  : null} />
+              <InfoRow label="Code"  value={c.agentCode} />
+              <InfoRow label="Email" value={c.agentEmail} />
+            </CardContent>
+          </Card>
+
         </Box>
 
-        {/* ── Right column: Bookings + Cards ─────────────── */}
+        {/* ── Right column ───────────────────────────────── */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 
           <Card>
             <CardHeader title="Booking history"
               titleTypographyProps={{ variant: 'h6', sx: { color: KUKAT.navy } }}
               action={
-                <Button size="small" onClick={() => navigate(`/bookings?customer=${id}`)}>
+                <Button size="small" variant="outlined"
+                  onClick={() => navigate(`/bookings?customer=${id}`)}>
                   View all
                 </Button>
               }
@@ -218,8 +270,7 @@ export default function CustomerDetailPage() {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <Box sx={{
                       width: 36, height: 24, borderRadius: '4px',
-                      background: KUKAT.surface,
-                      border: `1px solid ${KUKAT.border}`,
+                      background: KUKAT.surface, border: `1px solid ${KUKAT.border}`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                       <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: KUKAT.navy }}>
@@ -227,7 +278,9 @@ export default function CustomerDetailPage() {
                       </Typography>
                     </Box>
                     <Box>
-                      <Typography variant="body2" fontWeight={600}>{card.cardNumber}</Typography>
+                      <Typography variant="body2" fontWeight={600}>
+                        {card.cardNumber}
+                      </Typography>
                       <Typography variant="caption" sx={{ color: KUKAT.textMuted }}>
                         {card.cardHolderName}
                       </Typography>
@@ -252,24 +305,42 @@ export default function CustomerDetailPage() {
         </Box>
       </Box>
 
-      {/* ── Edit drawer ────────────────────────────────────── */}
+      {/* ── Edit drawer ──────────────────────────────────────── */}
       <Drawer anchor="right" open={editOpen}
         onClose={() => !saving && setEditOpen(false)}
         PaperProps={{ sx: { width: { xs: '100%', sm: 560 }, p: 3, overflow: 'auto' } }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Box sx={{
+          display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', mb: 3,
+        }}>
           <Typography variant="h5" sx={{ color: KUKAT.navy }}>Edit customer</Typography>
-          <IconButton onClick={() => setEditOpen(false)} disabled={saving}><Close /></IconButton>
+          <IconButton onClick={() => setEditOpen(false)} disabled={saving}>
+            <Close />
+          </IconButton>
         </Box>
-        <CustomerForm initial={c} onSave={handleEdit}
-          onCancel={() => setEditOpen(false)} saving={saving} />
+        {saveErr && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSaveErr('')}>
+            {saveErr}
+          </Alert>
+        )}
+        <CustomerForm
+          initial={c}
+          onSave={handleEdit}
+          onCancel={() => setEditOpen(false)}
+          saving={saving}
+        />
       </Drawer>
 
-      {/* ── Reassign dialog ────────────────────────────────── */}
-      <Dialog open={reassignOpen} onClose={() => setReassignOpen(false)} maxWidth="xs" fullWidth>
+      {/* ── Reassign dialog ──────────────────────────────────── */}
+      <Dialog open={reassignOpen}
+        onClose={() => !saving && setReassignOpen(false)}
+        maxWidth="xs" fullWidth>
         <DialogTitle>Reassign agent</DialogTitle>
         <DialogContent>
+          {saveErr && <Alert severity="error" sx={{ mb: 2 }}>{saveErr}</Alert>}
           <Typography variant="body2" sx={{ color: KUKAT.textMuted, mb: 2 }}>
-            Currently assigned to: <strong>{c.agentFirstName} {c.agentLastName}</strong>
+            Currently assigned to:{' '}
+            <strong>{c.agentFirstName} {c.agentLastName}</strong>
           </Typography>
           <TextField select fullWidth label="New agent"
             value={newAgent} onChange={(e) => setNewAgent(e.target.value)}>
@@ -281,13 +352,18 @@ export default function CustomerDetailPage() {
           </TextField>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setReassignOpen(false)}>Cancel</Button>
+          <Button onClick={() => setReassignOpen(false)} disabled={saving}>
+            Cancel
+          </Button>
           <Button variant="contained" onClick={handleReassign}
             disabled={!newAgent || saving}>
-            {saving ? 'Saving…' : 'Reassign'}
+            {saving
+              ? <CircularProgress size={18} sx={{ color: '#fff' }} />
+              : 'Reassign'}
           </Button>
         </DialogActions>
       </Dialog>
 
-    </AppLayout>  );
+    </AppLayout>
+  );
 }

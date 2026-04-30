@@ -14,11 +14,12 @@ export const changePasswordValidator = [
 
 export const bookingValidator = [
   body('customerID').isInt({ min: 1 }).withMessage('Valid customer is required.'),
-  body('productID').isInt({ min: 1 }).withMessage('Valid product is required.'),
   body('bookingDate').isDate().withMessage('Valid booking date is required.'),
-  body('basePrice').isFloat({ min: 0 }).withMessage('Base price must be a positive number.'),
   body('taxRate').optional().isFloat({ min: 0, max: 100 }).withMessage('Tax rate must be between 0 and 100.'),
-  body('numberOfTravellers').optional().isInt({ min: 1 }).withMessage('Travellers must be at least 1.'),
+  body('items').isArray({ min: 1 }).withMessage('At least one booking item is required.'),
+  body('items.*.productID').isInt({ min: 1 }).withMessage('Each item must have a valid product.'),
+  body('items.*.unitPrice').isFloat({ min: 0 }).withMessage('Each item must have a valid price.'),
+  body('items.*.quantity').optional().isInt({ min: 1 }).withMessage('Quantity must be at least 1.'),
 ];
 
 export const customerValidator = [
@@ -51,6 +52,16 @@ export const paymentValidator = [
 
 export const commissionPaymentValidator = [
   body('paymentAmount').isFloat({ min: 0.01 }).withMessage('Payment amount must be greater than 0.'),
-  body('paymentMethod').isIn(['TRANSFER', 'CHEQUE', 'CASH'])
-    .withMessage('Valid payment method is required.'),
+  body('paymentMethod').isIn(['TRANSFER', 'CHEQUE', 'CASH', 'EFT']).withMessage('Valid payment method is required.'),
+  body('paymentDate').optional().isDate().withMessage('Valid payment date is required.'),
+  body('reference').optional().isString().withMessage('reference must be a string.'),
+  body('processedBy').optional().isString().withMessage('processedBy must be a string.'),
+];
+
+export const bookingItemValidator = [
+  body('productID').isInt({ min: 1 }).withMessage('Valid product is required.'),
+  body('unitPrice').isFloat({ min: 0 }).withMessage('Unit price must be a positive number.'),
+  body('quantity').optional().isInt({ min: 1 }).withMessage('Quantity must be at least 1.'),
+  body('tripStart').optional().isDate().withMessage('Valid trip start date is required.'),
+  body('tripEnd').optional().isDate().withMessage('Valid trip end date is required.'),
 ];

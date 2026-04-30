@@ -81,7 +81,7 @@ export default function ReportsPage() {
         <KPICard label="Total bookings" loading={loading} color={KUKAT.navy}
           value={bk.total ?? '—'}
           sub={`${bk.confirmed ?? 0} confirmed`} />
-        <KPICard label="Commissions paid" loading={loading} color="#15803D"
+        <KPICard label="Commission income received" loading={loading} color="#15803D"
           value={comm.paid != null
             ? `$${parseFloat(comm.paid).toLocaleString('en-CA', { minimumFractionDigits: 0 })}`
             : '—'}

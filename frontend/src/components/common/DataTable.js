@@ -4,7 +4,7 @@ import {
   TableRow, TablePagination, TableSortLabel, Paper,
   Box, Skeleton, Typography,
 } from '@mui/material';
-import { InboxOutlined, CheckCircle } from '@mui/icons-material';
+import { InboxOutlined} from '@mui/icons-material';
 import { KUKAT } from '../../styles/theme';
 
 export default function DataTable({

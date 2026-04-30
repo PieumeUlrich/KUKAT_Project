@@ -1,19 +1,20 @@
-import bcrypt from 'bcryptjs';
+import bcrypt   from 'bcryptjs';
 import { query, sql } from '../config/db.js';
 import { buildSearch, paginate, paginated, httpError } from '../utils/helpers.js';
+import auditLog from '../utils/audit.js'; // ← MISSING IMPORT
 
 // GET /api/employees/stats
 const getStats = async (req, res, next) => {
   try {
     const result = await query(
       `SELECT
-         COUNT(*)                                                    AS total,
-         SUM(CASE WHEN e.isActive = 1 THEN 1 ELSE 0 END)           AS active,
-         SUM(CASE WHEN e.isActive = 0 THEN 1 ELSE 0 END)           AS inactive,
-         SUM(CASE WHEN r.roleName = 'agent' THEN 1 ELSE 0 END)     AS agents,
-         SUM(CASE WHEN r.roleName = 'manager' THEN 1 ELSE 0 END)   AS managers,
+         COUNT(*)                                                     AS total,
+         SUM(CASE WHEN e.isActive = 1 THEN 1 ELSE 0 END)            AS active,
+         SUM(CASE WHEN e.isActive = 0 THEN 1 ELSE 0 END)            AS inactive,
+         SUM(CASE WHEN r.roleName = 'agent'      THEN 1 ELSE 0 END) AS agents,
+         SUM(CASE WHEN r.roleName = 'manager'    THEN 1 ELSE 0 END) AS managers,
          SUM(CASE WHEN r.roleName = 'accountant' THEN 1 ELSE 0 END) AS accountants,
-         SUM(CASE WHEN r.roleName = 'hr' THEN 1 ELSE 0 END)        AS hr,
+         SUM(CASE WHEN r.roleName = 'hr'         THEN 1 ELSE 0 END) AS hr,
          SUM(CASE WHEN MONTH(e.hireDate) = MONTH(GETDATE())
                    AND YEAR(e.hireDate)  = YEAR(GETDATE()) THEN 1 ELSE 0 END) AS newThisMonth
        FROM employees e
@@ -51,8 +52,9 @@ const getAll = async (req, res, next) => {
     const result = await query(
       `SELECT e.employeeID, e.firstName, e.lastName, e.email,
               e.agentCode, e.phoneNumber, e.city, e.province,
-              e.postalCode, e.isActive, e.hireDate, e.createdAt,
-              r.roleName, r.roleID, e.address1
+              e.postalCode, e.country, e.isActive, e.hireDate,
+              e.createdAt, e.address1,
+              r.roleName, r.roleID
        FROM   employees e
        JOIN   roles r ON r.roleID = e.roleID
        ${where}
@@ -72,10 +74,13 @@ const getById = async (req, res, next) => {
               e.agentCode, e.phoneNumber, e.address1, e.city,
               e.province, e.postalCode, e.country, e.isActive,
               e.hireDate, e.createdAt, r.roleName, r.roleID,
-              (SELECT COUNT(*) FROM bookings    b WHERE b.employeeID = e.employeeID) AS bookingCount,
-              (SELECT COUNT(*) FROM commissions c WHERE c.employeeID = e.employeeID) AS commissionCount,
+              (SELECT COUNT(*) FROM bookings b
+               WHERE b.employeeID = e.employeeID)                    AS bookingCount,
+              (SELECT COUNT(*) FROM commissions c
+               WHERE c.employeeID = e.employeeID)                    AS commissionCount,
               (SELECT ISNULL(SUM(cp.paymentAmount), 0)
-               FROM commission_payments cp WHERE cp.employeeID = e.employeeID)       AS totalPaid
+               FROM commission_payments cp
+               WHERE cp.processedBy = e.employeeID)                  AS totalProcessed
        FROM   employees e
        JOIN   roles r ON r.roleID = e.roleID
        WHERE  e.employeeID = @id`,
@@ -132,7 +137,8 @@ const create = async (req, res, next) => {
       }
     );
     const newID = result.recordset[0].employeeID;
-    await auditLog(req, 'CREATE', 'employees', newID, null, { ...req.body, password: '[REDACTED]' });
+    await auditLog(req, 'CREATE', 'employees', newID, null,
+      { ...req.body, password: '[REDACTED]' });
     res.status(201).json({ employeeID: newID, message: 'Employee created.' });
   } catch (err) { next(err); }
 };
@@ -146,6 +152,16 @@ const update = async (req, res, next) => {
       phoneNumber, address1, city, province, postalCode, country,
       hireDate, isActive,
     } = req.body;
+
+    // ← Fetch old record BEFORE updating for audit log
+    const oldResult = await query(
+      `SELECT firstName, lastName, email, agentCode, phoneNumber,
+              city, province, roleID, isActive
+       FROM employees WHERE employeeID = @id`,
+      { id: { type: sql.Int, value: id } }
+    );
+    const oldRecord = oldResult.recordset[0] ?? null;
+
     await query(
       `UPDATE employees SET
          firstName   = @firstName,  lastName    = @lastName,
@@ -173,6 +189,7 @@ const update = async (req, res, next) => {
         isActive:    { type: sql.Bit,      value: isActive ? 1 : 0 },
       }
     );
+    await auditLog(req, 'UPDATE', 'employees', id, oldRecord, req.body);
     res.json({ message: 'Employee updated.' });
   } catch (err) { next(err); }
 };
@@ -181,12 +198,16 @@ const update = async (req, res, next) => {
 const deactivate = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
-    if (id === req.user.employeeID) throw httpError(400, 'Cannot deactivate your own account.');
+    if (id === req.user.employeeID) {
+      throw httpError(400, 'Cannot deactivate your own account.');
+    }
     await query(
-      `UPDATE employees SET isActive = 0, updatedAt = GETDATE() WHERE employeeID = @id`,
+      `UPDATE employees SET isActive = 0, updatedAt = GETDATE()
+       WHERE employeeID = @id`,
       { id: { type: sql.Int, value: id } }
     );
-    await auditLog(req, 'DEACTIVATE', 'employees', id, null, false );
+    await auditLog(req, 'DEACTIVATE', 'employees', id,
+      { isActive: true }, { isActive: false });
     res.json({ message: 'Employee deactivated.' });
   } catch (err) { next(err); }
 };
@@ -196,10 +217,12 @@ const activate = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
     await query(
-      `UPDATE employees SET isActive = 1, updatedAt = GETDATE() WHERE employeeID = @id`,
+      `UPDATE employees SET isActive = 1, updatedAt = GETDATE()
+       WHERE employeeID = @id`,
       { id: { type: sql.Int, value: id } }
     );
-    await auditLog(req, 'ACTIVATE', 'employees', id, null, true );
+    await auditLog(req, 'ACTIVATE', 'employees', id,
+      { isActive: false }, { isActive: true });
     res.json({ message: 'Employee activated.' });
   } catch (err) { next(err); }
 };
