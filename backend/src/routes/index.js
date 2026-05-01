@@ -22,6 +22,8 @@ import * as pdf         from '../controllers/pdfController.js';
 import * as audit       from '../controllers/auditController.js';
 import * as suppliers   from '../controllers/suppliersController.js';
 
+import * as publicCtrl from '../controllers/publicController.js';
+
 const router = Router();
 
 const SA  = 'superadmin';
@@ -36,6 +38,8 @@ router.put ('/auth/change-password', authenticate, changePasswordValidator,     
 router.post('/auth/logout',          authenticate,                                          auth.logout);
 router.get ('/auth/me',              authenticate,                                          auth.getMe);
 router.post('/auth/refresh',                                                                auth.refreshToken);
+router.post('/auth/forgot-password',                                                        auth.forgotPassword);
+router.post('/auth/reset-password',                                                         auth.resetPassword);
 
 // ── Dashboard ─────────────────────────────────────────────────
 router.get('/dashboard', authenticate, dashboard.getDashboard);
@@ -123,6 +127,13 @@ router.get('/reports/top-destinations', authenticate, authorize(SA, MGR, ACC, HR
 router.get('/reports/top-products',     authenticate, authorize(SA, MGR, ACC, HR),      reports.getTopProducts);
 router.get('/reports/commissions',      authenticate, authorize(SA, MGR, ACC),          reports.getCommissionReport);
 router.get('/reports/revenue-trend',    authenticate, authorize(SA, MGR, ACC, HR),      reports.getRevenueTrend);
+
+// ── Public landing page data — no auth required ───────────────
+router.get('/public/stats',        publicCtrl.getStats);
+router.get('/public/destinations', publicCtrl.getDestinations);
+router.get('/public/promotions',   publicCtrl.getPromotions);
+router.get('/public/suppliers',    publicCtrl.getSuppliers);
+router.post('/public/contact',     publicCtrl.contact);
 
 // ── Audit Logs ────────────────────────────────────────────────
 router.get('/audit', authenticate, authorize(SA, MGR), audit.getAuditLogs);

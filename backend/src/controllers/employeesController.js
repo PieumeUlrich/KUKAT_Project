@@ -108,7 +108,7 @@ const create = async (req, res, next) => {
       `SELECT employeeID FROM employees WHERE email = @email`,
       { email: { type: sql.NVarChar, value: email } }
     );
-    if (existing.recordset[0]) throw httpError(409, 'Email already in use.');
+    if (existing.recordset[0]) throw httpError(409, 'User already exists in the system!');
 
     const hash = await bcrypt.hash(password, 12);
 

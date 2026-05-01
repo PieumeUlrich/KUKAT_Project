@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { query, sql } from '../config/db.js';
 import { httpError }  from '../utils/helpers.js';
 import auditLog from '../utils/audit.js';
+import { sendOTP } from '../utils/mailer.js';
 
 // POST /api/auth/login
 const login = async (req, res, next) => {
@@ -197,4 +198,107 @@ const changePassword = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-export { login, logout, refreshToken, getMe, changePassword };
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) throw httpError(400, 'Email is required.');
+
+    // Find employee by email
+    const result = await query(
+      `SELECT employeeID, firstName, lastName, email
+       FROM employees WHERE email = @email AND isActive = 1`,
+      { email: { type: sql.NVarChar, value: email } }
+    );
+
+    // Always return success — don't reveal if email exists
+    if (!result.recordset[0]) {
+      return res.json({ message: 'If that email exists, a reset code has been sent.' });
+    }
+
+    const employee = result.recordset[0];
+
+    // Invalidate any existing unused OTPs for this email
+    await query(
+      `UPDATE password_resets SET used = 1
+       WHERE email = @email AND used = 0`,
+      { email: { type: sql.NVarChar, value: email } }
+    );
+
+    // Generate 6-digit OTP
+    const otp       = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    // Store OTP
+    await query(
+      `INSERT INTO password_resets (email, otp, expiresAt)
+       VALUES (@email, @otp, @expiresAt)`,
+      {
+        email:     { type: sql.NVarChar, value: email },
+        otp:       { type: sql.NVarChar, value: otp },
+        expiresAt: { type: sql.DateTime, value: expiresAt },
+      }
+    );
+
+    // Send email
+    await sendOTP(email, otp, employee.firstName);
+
+    res.json({ message: 'If that email exists, a reset code has been sent.' });
+  } catch (err) { next(err); }
+};
+
+// ── POST /api/auth/reset-password ─────────────────────────────
+const resetPassword = async (req, res, next) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword)
+      throw httpError(400, 'Email, OTP and new password are required.');
+    if (newPassword.length < 8)
+      throw httpError(400, 'Password must be at least 8 characters.');
+
+    // Verify OTP
+    const resetResult = await query(
+      `SELECT resetID, expiresAt, used
+       FROM password_resets
+       WHERE email = @email AND otp = @otp
+       ORDER BY createdAt DESC`,
+      {
+        email: { type: sql.NVarChar, value: email },
+        otp:   { type: sql.NVarChar, value: otp },
+      }
+    );
+
+    const reset = resetResult.recordset[0];
+    if (!reset) throw httpError(400, 'Invalid reset code.');
+    if (reset.used) throw httpError(400, 'This reset code has already been used.');
+    if (new Date() > new Date(reset.expiresAt))
+      throw httpError(400, 'Reset code has expired. Please request a new one.');
+
+    const hashedPass = await bcrypt.hash(newPassword, 12);
+
+    await query(
+      `UPDATE employees SET passwordHash = @passwordHash
+       WHERE email = @email`,
+      {
+        email:        { type: sql.NVarChar, value: email },
+        passwordHash: { type: sql.NVarChar, value: hashedPass },
+      }
+    );
+
+    // Mark OTP as used
+    await query(
+      `UPDATE password_resets SET used = 1
+       WHERE resetID = @resetID`,
+      { resetID: { type: sql.Int, value: reset.resetID } }
+    );
+
+    // Invalidate refresh token — force re-login
+    await query(
+      `UPDATE employees SET refreshToken = NULL
+       WHERE email = @email`,
+      { email: { type: sql.NVarChar, value: email } }
+    );
+
+    res.json({ message: 'Password reset successfully. Please log in with your new password.' });
+  } catch (err) { next(err); }
+};
+export { login, logout, refreshToken, getMe, changePassword, forgotPassword, resetPassword };

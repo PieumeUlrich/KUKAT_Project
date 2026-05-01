@@ -172,8 +172,8 @@ const MiniChartCard = ({ title, value, sub, icon, data, dataKey, color, chartTyp
         )}
       </Box>
       {loading ? <Skeleton variant="rounded" height={70} /> : (
-        <Box sx={{ height: 70, mt: 1 }}>
-          <ResponsiveContainer width="100%" height="100%">
+        <Box sx={{ height: 70, mt: 1, minWidth: 0 }}>
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             {chartType === 'bar' ? (
               <BarChart data={data} margin={{ top: 0, right: 0, left: -30, bottom: 0 }}>
                 <Bar dataKey={dataKey} fill={color} radius={[3, 3, 0, 0]} />
@@ -284,8 +284,8 @@ const AdminDashboard = ({
               <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>No data for this period.</Typography>
             </Box>
           ) : (
-            <Box sx={{ height: 300 }}>
-              <ResponsiveContainer width="100%" height="100%">
+            <Box sx={{ height: 300, mt: 1, minWidth: 0 }}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <LineChart data={trend} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={KUKAT.border} />
                   <XAxis dataKey="label" tick={{ fontSize: 11, fill: KUKAT.textMuted }}
@@ -439,8 +439,8 @@ const AdminDashboard = ({
               <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>No data.</Typography>
             </Box>
           ) : (
-            <Box sx={{ height: 280 }}>
-              <ResponsiveContainer width="100%" height="100%">
+            <Box sx={{ height: 280, mt: 1, minWidth: 0 }}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <PieChart>
                   <Pie data={statusPie} cx="50%" cy="45%"
                     innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
@@ -467,8 +467,8 @@ const AdminDashboard = ({
               <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>No data.</Typography>
             </Box>
           ) : (
-            <Box sx={{ height: 280 }}>
-              <ResponsiveContainer width="100%" height="100%">
+            <Box sx={{ height: 280, mt: 1, minWidth: 0 }}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart data={agentBarData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={KUKAT.border} vertical={false} />
                   <XAxis dataKey="name" tick={{ fontSize: 11, fill: KUKAT.textMuted }}
@@ -666,8 +666,8 @@ const HRDashboard = ({ data, loading }) => {
                 <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>No data.</Typography>
               </Box>
             ) : (
-              <Box sx={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
+              <Box sx={{ height: 300, mt: 1, minWidth: 0 }}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <PieChart>
                     <Pie data={rolePieData} cx="50%" cy="45%"
                       innerRadius={60} outerRadius={100} paddingAngle={3} dataKey="value">
@@ -824,8 +824,8 @@ const AccountantDashboard = ({ data, loading }) => {
                 <Typography variant="body2" sx={{ color: KUKAT.textMuted }}>No revenue data.</Typography>
               </Box>
             ) : (
-              <Box sx={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
+              <Box sx={{ height: 300, mt: 1, minWidth: 0 }}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <AreaChart data={revenueChartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={KUKAT.border} />
                     <XAxis dataKey="label" tick={{ fontSize: 11, fill: KUKAT.textMuted }} tickLine={false} axisLine={false} />
@@ -856,8 +856,8 @@ const AccountantDashboard = ({ data, loading }) => {
                 No payment data.
               </Typography>
             ) : (
-              <Box sx={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
+              <Box sx={{ height: 300, mt: 1, minWidth: 0 }}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <BarChart data={paymentBarData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={KUKAT.border} vertical={false} />
                     <XAxis dataKey="method" tick={{ fontSize: 11, fill: KUKAT.textMuted }} tickLine={false} axisLine={false} />

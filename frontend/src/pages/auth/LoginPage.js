@@ -235,6 +235,18 @@ export default function LoginPage() {
               }}
             />
 
+            <Box sx={{ textAlign: 'right', mt: -1.5 }}>
+              <Typography
+                variant="caption"
+                onClick={() => navigate('/forgot-password')}
+                sx={{
+                  color: KUKAT.textMuted, cursor: 'pointer',
+                  '&:hover': { color: KUKAT.navy, textDecoration: 'underline' },
+                }}>
+                Forgot password?
+              </Typography>
+            </Box>
+            
             <Button
               type="submit"
               variant="contained"

@@ -10,6 +10,8 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import LoginPage             from './pages/auth/LoginPage';
 import UnauthorizedPage      from './pages/auth/UnauthorizedPage';
 import ChangePasswordPage    from './pages/auth/ChangePasswordPage';
+import ForgotPasswordPage    from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage     from './pages/auth/ResetPasswordPage';
 import DashboardPage         from './pages/dashboard/DashboardPage';
 import BookingsPage          from './pages/bookings/BookingsPage';
 import BookingDetailPage     from './pages/bookings/BookingDetailPage';
@@ -26,6 +28,7 @@ import ReportsPage           from './pages/reports/ReportsPage';
 import StaffPage             from './pages/staff/StaffPage';
 import HRPage                from './pages/hr/HRPage';
 import AuditPage             from './pages/admin/AuditPage';
+import LandingPage           from './pages/landing/LandingPage';
 
 const { SUPERADMIN, MANAGER, AGENT, ACCOUNTANT, HR } = ROLES;
 
@@ -40,7 +43,10 @@ const App = () => {
             {/* ── Public ───────────────────────────────────────── */}
             <Route path="/login"        element={<LoginPage />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
-            <Route path="/"             element={<Navigate to="/dashboard" replace />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password"  element={<ResetPasswordPage />} />
+            <Route path="/"             element={<LandingPage />} />
+            <Route path="/home"         element={<LandingPage />} />
 
             {/* ── All authenticated users ───────────────────────── */}
             <Route path="/dashboard" element={
