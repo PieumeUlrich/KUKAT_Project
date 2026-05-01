@@ -29,6 +29,8 @@ import StaffPage             from './pages/staff/StaffPage';
 import HRPage                from './pages/hr/HRPage';
 import AuditPage             from './pages/admin/AuditPage';
 import LandingPage           from './pages/landing/LandingPage';
+import PublicRoute           from './components/common/PublicRoute';
+import NotFoundPage          from './components/common/NotFoundPage';
 
 const { SUPERADMIN, MANAGER, AGENT, ACCOUNTANT, HR } = ROLES;
 
@@ -41,12 +43,13 @@ const App = () => {
           <Routes>
 
             {/* ── Public ───────────────────────────────────────── */}
-            <Route path="/login"        element={<LoginPage />} />
-            <Route path="/unauthorized" element={<UnauthorizedPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password"  element={<ResetPasswordPage />} />
             <Route path="/"             element={<LandingPage />} />
             <Route path="/home"         element={<LandingPage />} />
+
+            <Route path="/login"           element={<PublicRoute><LoginPage /></PublicRoute>} />
+            <Route path="/unauthorized"    element={<PublicRoute><UnauthorizedPage /></PublicRoute>} />
+            <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+            <Route path="/reset-password"  element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
 
             {/* ── All authenticated users ───────────────────────── */}
             <Route path="/dashboard" element={
@@ -152,7 +155,7 @@ const App = () => {
             } />
 
             {/* ── Catch-all — must be last ──────────────────────── */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<NotFoundPage />} />
 
           </Routes>
         </BrowserRouter>

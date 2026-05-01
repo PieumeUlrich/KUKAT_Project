@@ -170,6 +170,10 @@ export default function LandingPage() {
     setContactForm(p => ({ ...p, [f]: e.target.value }));
     setContactErrors(p => ({ ...p, [f]: '' }));
   };
+  const scrollTo = (id) => (e) => {
+    e.preventDefault();
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const validateContact = (form) => {
     const e = {};
@@ -203,10 +207,10 @@ export default function LandingPage() {
           <span className="nav-logo-text">KUKAT</span>
         </a>
         <ul className="nav-links">
-          <li><a href="#destinations">Destinations</a></li>
-          <li><a href="#promotions">Promotions</a></li>
-          <li><a href="#about">About</a></li>
-          <li><a href="#contact">Contact</a></li>
+          <li><a href="#destinations" onClick={scrollTo('destinations')}>Destinations</a></li>
+          <li><a href="#promotions" onClick={scrollTo('promotions')}>Promotions</a></li>
+          <li><a href="#about" onClick={scrollTo('about')}>About</a></li>
+          <li><a href="#contact" onClick={scrollTo('contact')}>Contact</a></li>
           <li>
             <a href="/login" className="nav-cta"
               onClick={(e) => { e.preventDefault(); navigate('/login'); }}>
@@ -733,10 +737,10 @@ export default function LandingPage() {
             </p>
           </div>
           <ul className="footer-links">
-            <li><a href="#destinations">Destinations</a></li>
-            <li><a href="#promotions">Promotions</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="#contact">Contact</a></li>
+            <li><a href="#destinations" onClick={scrollTo('destinations')}>Destinations</a></li>
+            <li><a href="#promotions" onClick={scrollTo('promotions')}>Promotions</a></li>
+            <li><a href="#about" onClick={scrollTo('about')}>About</a></li>
+            <li><a href="#contact" onClick={scrollTo('contact')}>Contact</a></li>
             <li>
               <a href="/login"
                 onClick={(e) => { e.preventDefault(); navigate('/login'); }}>
