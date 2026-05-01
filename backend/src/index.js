@@ -18,12 +18,19 @@ app.use(helmet());
 
 // ── CORS ──────────────────────────────────────────────────────
 app.use(cors({
-  origin:      [
-    process.env.CORS_ORIGIN || 'http://localhost:3000',
-    'https://gentle-dune-0c77f661e.7.azurestaticapps.net',
-  ],
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000').split(',');
+    
+    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed! Unauthorized CORS policy'));
+    }
+  },
   credentials: true,
-  methods:     ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
