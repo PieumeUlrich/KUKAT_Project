@@ -16,7 +16,6 @@ const PORT = process.env.PORT || 3001;
 
 // ── Rate limiting (general) ───────────────────────────────────
 app.set('trust proxy', 1);
-const rateLimit = require('express-rate-limit');
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
