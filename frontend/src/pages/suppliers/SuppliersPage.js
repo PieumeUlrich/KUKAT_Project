@@ -70,6 +70,7 @@ function SupplierForm({ initial = {}, onSave, onCancel, saving }) {
   notes:           '',
   isActive:        true,
   ...initial,
+  // eslint-disable-next-line
   commissionRate: String(initial?.commissionRate ?? '10'),
 });
   const [errors, setErrors] = useState({});

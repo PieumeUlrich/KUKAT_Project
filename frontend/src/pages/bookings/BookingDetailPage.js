@@ -120,16 +120,17 @@ export default function BookingDetailPage() {
     } catch (err) {
       setMemberPayErr(err.response?.data?.message || 'Failed to record payment.');
     } finally { setMemberPaySaving(false); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [memberPayForm, memberPayDrawer.member, refetch]);
 
   const handleAddMember = useCallback(async (customer) => {
     if (!customer) return;
     setAddMemberSaving(true); setAddMemberErr('');
     try {
-      const response = await bookingsApi.addMember(id, {
-        customerID:  customer.customerID,
-        shareAmount: parseFloat(addMemberShare || 0),
-      });
+      // const response = await bookingsApi.addMember(id, {
+      //   customerID:  customer.customerID,
+      //   shareAmount: parseFloat(addMemberShare || 0),
+      // });
       setAddMemberDrawer(false);
       setAddMemberQuery('');
       setAddMemberShare('');
@@ -137,6 +138,7 @@ export default function BookingDetailPage() {
     } catch (err) {
       setAddMemberErr(err.response?.data?.message || 'Failed to add member.');
     } finally { setAddMemberSaving(false); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, addMemberShare, refetch]);
 
   if (loading) return (

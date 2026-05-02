@@ -50,7 +50,6 @@ export default function CommissionsPage() {
 
   // Commissions are agency revenue — only managers/accountants see this page
   const canApprove = ['superadmin', 'manager'].includes(user?.role);
-  const canRecord  = ['superadmin', 'accountant'].includes(user?.role);
 
   const [search,    setSearch]    = useState('');
   const [status,    setStatus]    = useState('');

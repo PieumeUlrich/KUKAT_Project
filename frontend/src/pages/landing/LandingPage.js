@@ -60,21 +60,28 @@ const DEST_IMAGES = [
 ];
 
 // ── Scroll animation hook ─────────────────────────────────────
-function useScrollReveal() {
+const useScrollReveal = (deps = []) => {
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => entries.forEach(e => {
-        if (e.isIntersecting) e.target.classList.add('visible');
-      }),
-      { threshold: 0.1 }
-    );
-    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
-    return () => observer.disconnect();
-  }, []);
+    const timer = setTimeout(() => {
+      const observer = new IntersectionObserver(
+        (entries) => entries.forEach(e => {
+          if (e.isIntersecting) e.target.classList.add('visible');
+        }),
+        { threshold: 0.1 }
+      );
+      document.querySelectorAll('.fade-in').forEach(el => {
+        observer.observe(el);
+      });
+      return () => observer.disconnect();
+    }, 100);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
 }
 
 // ── Animated counter ──────────────────────────────────────────
-function AnimatedNumber({ value, suffix = '' }) {
+const AnimatedNumber = ({ value, suffix = '' }) => {
   const [display, setDisplay] = useState(0);
   const ref      = useRef(null);
   const animated = useRef(false);
@@ -136,7 +143,7 @@ export default function LandingPage() {
   const [contactSending, setContactSending] = useState(false);
   const [contactSent,    setContactSent]    = useState(false);
 
-  useScrollReveal();
+  useScrollReveal([destinations, promotions, suppliers]);
 
   // Auto-advance hero slides
   useEffect(() => {

@@ -7,7 +7,7 @@ import {
   Drawer, TextField, Switch, FormControlLabel, CircularProgress,
 } from '@mui/material';
 import {
-  ArrowBack, Business, Edit, CheckCircle,
+  ArrowBack, Business, Edit, 
   AccountBalance, Close, Warning, AttachMoney,
 } from '@mui/icons-material';
 import AppLayout from '../../components/layout/AppLayout';
@@ -52,6 +52,7 @@ function SupplierForm({ initial = {}, onSave, onCancel, saving }) {
     notes:           '',
     isActive:        true,
     ...initial,
+    // eslint-disable-next-line
     commissionRate: String(initial?.commissionRate ?? '10'),
   });
   const [errors, setErrors] = useState({});

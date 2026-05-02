@@ -101,7 +101,6 @@ const STATUS_FILTERS = ['', 'pending', 'confirmed', 'completed', 'cancelled'];
 
 export default function BookingsPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   const [search,     setSearch]     = useState('');
   const [status,     setStatus]     = useState('');

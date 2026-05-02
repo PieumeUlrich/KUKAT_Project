@@ -8,7 +8,6 @@ import {
 import { Add, Delete, Group, ShoppingCart } from '@mui/icons-material';
 import { useBookingFormData } from '../../hooks/useBookings';
 import { bookingsApi } from '../../api/index';
-import { useAuth } from '../../store/AuthContext';
 import { KUKAT } from '../../styles/theme';
 
 const STATUSES = ['pending', 'confirmed', 'completed', 'cancelled'];
@@ -43,11 +42,10 @@ const emptyItem = () => ({
 });
 
 export default function BookingForm({ initial = {}, onSave, onCancel, saving }) {
-  const { user } = useAuth();
   const isEdit   = !!initial?.bookingID;
 
   const {
-    destinations, classTypes, fees, products, loading: refLoading,
+    destinations, classTypes, products, loading: refLoading,
   } = useBookingFormData();
 
   // ── Booking header ────────────────────────────────────────
@@ -101,6 +99,7 @@ export default function BookingForm({ initial = {}, onSave, onCancel, saving }) 
       })
       .catch(() => {})
       .finally(() => setCustLoading(false));
+      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerQuery]);
 
   // Pre-load existing customer when editing
@@ -157,11 +156,11 @@ export default function BookingForm({ initial = {}, onSave, onCancel, saving }) 
     ));
   };
 
-  const setItemValue = (key, field, value) => {
-    setItems(prev => prev.map(item =>
-      item._key === key ? { ...item, [field]: value } : item
-    ));
-  };
+  // const setItemValue = (key, field, value) => {
+  //   setItems(prev => prev.map(item =>
+  //     item._key === key ? { ...item, [field]: value } : item
+  //   ));
+  // };
 
   const addItem = () => setItems(prev => [...prev, emptyItem()]);
 

@@ -11,7 +11,7 @@ const toDateInput = (val) => {
 export default function CustomerForm({ initial = {}, onSave, onCancel, saving }) {
   const [form, setForm] = useState({
     firstName:     '',  lastName:      '',  email:         '',
-    homePhone:     '',  businessPhone: '',  birthDate:     '',
+    homePhone:     '',  businessPhone: '',  
     address:       '',  city:          '',  postalCode:    '',
     province:      '',  country:       'Canada',  notes:         '',
     ...Object.fromEntries(

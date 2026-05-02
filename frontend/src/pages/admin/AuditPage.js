@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Box, Typography, TextField,
+  Box, TextField,
   MenuItem, Chip, Alert,
 } from '@mui/material';
 import AppLayout from '../../components/layout/AppLayout';
 import DataTable from '../../components/common/DataTable';
 import api from '../../api/client';
-import { KUKAT } from '../../styles/theme';
 
 const ACTION_COLORS = {
   CREATE:                { bg: '#DCFCE7', color: '#15803D' },

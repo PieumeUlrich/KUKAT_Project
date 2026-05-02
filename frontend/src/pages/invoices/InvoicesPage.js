@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Button, TextField, MenuItem, Card, CardContent, Tooltip,
+  Box, TextField, MenuItem, Card, CardContent, Tooltip,
   Typography, IconButton, InputAdornment, Alert,
 } from '@mui/material';
 import {
@@ -12,11 +12,10 @@ import AppLayout from '../../components/layout/AppLayout';
 import DataTable from '../../components/common/DataTable';
 import StatusChip from '../../components/common/StatusChip';
 import { useInvoices, useInvoiceStats } from '../../hooks/useModules';
-import { invoicesApi } from '../../api/index';
 import exportToCsv from '../../utils/exportCsv';
 import { KUKAT } from '../../styles/theme';
 
-function StatCard({ label, value, icon, color, loading, prefix = '' }) {
+const StatCard = ({ label, value, icon, color, loading, prefix = '' }) => {
   return (
     <Card>
       <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: '16px !important' }}>
@@ -78,7 +77,7 @@ export default function InvoicesPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
 
-  const { invoices: rawInvoices, loading, error, total, refetch } = useInvoices({ search, status });
+  const { invoices: rawInvoices, loading, error, total } = useInvoices({ search, status });
   const { stats: globalStats, loading: statsLoading } = useInvoiceStats();
   const invoices = rawInvoices ?? [];
 

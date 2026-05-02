@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Box, useMediaQuery, useTheme } from '@mui/material';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
-import { KUKAT } from '../../styles/theme';
 
 export default function AppLayout({ children, title, subtitle }) {
   const theme = useTheme();
