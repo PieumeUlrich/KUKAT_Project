@@ -2,7 +2,7 @@
 
 > A full-stack travel agency management platform built with React, Express.js and Azure SQL Server. Features a public-facing landing page, role-based staff portal, multi-item booking system, invoice generation, commission tracking and audit logging.
 
-**Live Demo:** [kukat-project.vercel.app]( https://kukat-project-3d71.vercel.app/)
+**Live Demo:** [kukat-project.vercel.app]( https://kukat-project-3d71.vercel.app/)          
 **Backend API:** [kukat-backend.up.railway.app](https://kukat-backend.up.railway.app)
 
 ---
